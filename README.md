@@ -42,7 +42,7 @@ That's it! Now go back to your design software, start changing layers names foll
 [Naming conventions](#naming-conventions) <br>
 
 ## Features
-[goto](#gototargetLayer) <br>
+[goto](#gototargetlayer) <br>
 [goback](#goback) <br>
 [scroll](#scroll) <br>
 [text-field](#text-field) <br>
