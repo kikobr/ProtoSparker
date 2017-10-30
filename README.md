@@ -27,16 +27,16 @@ protoSparker = new ProtoSparker
     firstPage: figma.pageLayer
 ```
 
-That's it! Now go back to your design software, start changing layers names following the [naming usage](#namingConventions) and reimport them back to Framer.js.
+That's it! Now go back to your design software, start changing layers names following the [naming usage](#naming-conventions) and reimport them back to Framer.js.
 
 ---
 
 # References
 ## Startup options
 [Startup usage](#startup-usage) <br>
-[firstPage](#firstPage) <br>
-[textField](#textField) <br>
-[selectField](#selectField) <br>
+[firstPage](#firstpage) <br>
+[textField](#textfield) <br>
+[selectField](#selectfield) <br>
 
 ## Naming conventions
 [Naming conventions](#naming-conventions) <br>
@@ -46,10 +46,10 @@ That's it! Now go back to your design software, start changing layers names foll
 [goback](#goback) <br>
 [scroll](#scroll) <br>
 [text-field](#text-field) <br>
-[select-field](#select-field[option:value,option:value]) <br>
-[overlay](#overlay:targetLayer) <br>
-[element](#element:elementName[state:stateName]) <br>
-[setElement](#setElement:targetElement[state:desiredState]) <br>
+[select-field](#select-fieldoptionvalueoptionvalue) <br>
+[overlay](#overlaytargetlayer) <br>
+[element](#elementelementnamestatestatename) <br>
+[setElement](#setelementtargetelementstatedesiredstate) <br>
 
 ---
 
@@ -65,7 +65,7 @@ protoSparker = new ProtoSparker
 This is the layer that shows up when the prototype boots. You can navigate between layers using the [goto](#goto) action. This is **required**
 
 ### textField
-This option allows you to customize the HTML input created by [text-field](#textField).
+This option allows you to customize the HTML input created by [text-field](#textfield).
 ```coffeescript
 protoSparker = new ProtoSparker
     textField:
@@ -82,7 +82,7 @@ protoSparker = new ProtoSparker
 ```
 
 ### selectField ###
-This option allows you to customize the HTML selects created by [select-field](#selectField).
+This option allows you to customize the HTML selects created by [select-field](#selectfield).
 ```coffeescript
 protoSparker = new ProtoSparker
     selectField:
@@ -139,10 +139,10 @@ This makes the layer / group automatically scrollable. By default it's set to sc
 You can pass the options **horizontal** or **vertical** to control the scroll behavior.
 
 ### text-field;
-This will turn the layer into a \<input[type="text"]\> field. If you want to override the default css or apply a style for the placeholder, check [select-field styling ](#textFieldCSS).
+This will turn the layer into a \<input[type="text"]\> field. If you want to override the default css or apply a style for the placeholder, check [select-field styling ](#textfield).
 
 ### select-field[option:value,option:value];
-This will turn the layer into a \<select\> field. If you want to override the default css or apply a style for the placeholder, check [select-field styling](#selectFieldCSS).
+This will turn the layer into a \<select\> field. If you want to override the default css or apply a style for the placeholder, check [select-field styling](#selectfield).
 
 The options will be rendered as \<option\> tags inside the \<select\>.
 
