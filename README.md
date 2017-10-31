@@ -104,7 +104,7 @@ protoSparker = new ProtoSparker
 
 ProtoSparker is based on layer names to automatically set up the expected behavior.
 
-That means if you want a layer to scroll, you name it "scroll;". If you want it to be a select field, you name it "select_field;".
+That means if you want a layer to scroll, you name it "scroll;". If you want it to be a select field, you name it "select-field;".
 
 Every feature we have is based on the same layer naming convention:
 ```

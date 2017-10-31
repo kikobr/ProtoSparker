@@ -515,15 +515,15 @@ class exports.ProtoSparker
 		head.appendChild style
 
 		# Generating text fields
-		ff('text_field*').forEach (field) =>
+		ff('text-field*').forEach (field) =>
 			field.html = "<input placeholder=\"#{@options.textField.placeholderText}\" class=\"#{@options.textField.defaultClass}\" />"
 
 		# Generating select boxes
-		ff('select_field*').forEach (field, index) =>
+		ff('select-field*').forEach (field, index) =>
 			optString = "<option selected disabled style=\"color: red\">#{@options.selectField.placeholderText}</option>"
 
 			layerName = @getLayerName field
-			actions = parse(layerName).filter (action) -> return action.action == 'select_field'
+			actions = parse(layerName).filter (action) -> return action.action == 'select-field'
 			action = actions[0] || null
 
 			if action
