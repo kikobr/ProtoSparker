@@ -277,7 +277,14 @@ class exports.ProtoSparker
 		#  break into commands separated by ; and run them in order
 		@actionLayers.forEach (layer) =>
 			layerFns = []
-			layerActionsArray = layer.name.split(';')
+			layerActionsArray = []
+
+			# if the layer has a ._info.originalName, it's an imported layer. use it!
+			if layer._info and layer._info.originalName
+				layerActionsArray = layer._info.originalName.split(';')
+			else
+				layerActionsArray = layer.name.split(';')
+
 			layerActionsArray.forEach (layerAction) =>
 				# check if this layerAction matches a registered actionLayers
 				@actions.forEach (action) =>
@@ -308,7 +315,12 @@ class exports.ProtoSparker
 
 	getLayerName: (layer) ->
 		try
-			layerName = layer.name
+			layerName = ""
+			# if the layer has a ._info.originalName, it's an imported layer. use it!
+			if layer._info and layer._info.originalName
+				layerName = layer._info.originalName
+			else
+				layerName = layer.name
 			# ignore suffix _123 on duplicates
 			treatedLayerName = layerName.replace(/_[0-9]+$/, '')
 			if f(treatedLayerName)
@@ -531,10 +543,15 @@ class exports.ProtoSparker
 			x = layer.x
 			y = layer.y
 
+			layerHeight = layer.height
+			layerWidth = layer.width
+
 			scroll = ScrollComponent.wrap layer
 			scroll.parent = parent
 			scroll.x = x
 			scroll.y = y
+			scroll.width = layerWidth
+			scroll.height = layerHeight
 			scroll.mouseWheelEnabled = true
 			scroll.scrollVertical = false
 			scroll.scrollHorizontal = false
@@ -587,10 +604,20 @@ class exports.ProtoSparker
 
 # f, ff
 _getHierarchy = (layer) ->
-  string = ''
-  for a in layer.ancestors()
-    string = a.name+'>'+string
-  return string = string+layer.name
+	string = ''
+	for a in layer.ancestors()
+		# if the layer has a ._info.originalName, it's an imported layer. use it!
+		if a._info and a._info.originalName
+			string = a._info.originalName+'>'+string
+		else
+			string = a.name+'>'+string
+
+	# if the layer has a ._info.originalName, it's an imported layer. use it!
+	if layer._info and layer._info.originalName
+		string = string+layer._info.originalName
+	else
+		string = string+layer.name
+	return string
 
 _match = (hierarchy, string) ->
   # prepare regex tokens
@@ -604,22 +631,30 @@ _match = (hierarchy, string) ->
   return hierarchy.match(regExp)
 
 _findAll = (selector, fromLayer) ->
-  layers = Framer.CurrentContext._layers
+	layers = Framer.CurrentContext._layers
 
-  if selector?
-    stringNeedsRegex = _.find ['*',' ','>',','], (c) -> _.includes selector,c
-    unless stringNeedsRegex or fromLayer
-      layers = _.filter layers, (layer) ->
-        if layer.name is selector then true
-    else
-      layers = _.filter layers, (layer) ->
-          hierarchy = _getHierarchy(layer)
-          if fromLayer?
-            _match(hierarchy, fromLayer.name+' '+selector)
-          else
-            _match(hierarchy, selector)
-  else
-    layers
+	if selector?
+		stringNeedsRegex = _.find ['*',' ','>',','], (c) -> _.includes selector,c
+		unless stringNeedsRegex or fromLayer
+			layers = _.filter layers, (layer) ->
+				# if the layer has a ._info.originalName, it's an imported layer. use it!
+				if layer._info and layer._info.originalName
+					if layer._info.originalName is selector then true
+				else
+					if layer.name is selector then true
+		else
+			layers = _.filter layers, (layer) ->
+				hierarchy = _getHierarchy(layer)
+				if fromLayer?
+					# if the layer has a ._info.originalName, it's an imported layer. use it!
+					if fromLayer._info and fromLayer._info.originalName
+						_match(hierarchy, fromLayer._info.originalName+' '+selector)
+					else
+						_match(hierarchy, fromLayer.name+' '+selector)
+				else
+					_match(hierarchy, selector)
+	else
+		layers
 
 f = exports.f = (selector, fromLayer) -> _findAll(selector, fromLayer)[0]
 ff = exports.ff = (selector, fromLayer) -> _findAll(selector, fromLayer)

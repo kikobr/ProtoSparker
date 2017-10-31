@@ -38,7 +38,7 @@ That's it! Now go back to your design software, start changing layers names foll
 [textField](#textfield) <br>
 [selectField](#selectfield) <br>
 
-## Naming conventions
+## Naming
 [Naming conventions](#naming-conventions) <br>
 
 ## Features
