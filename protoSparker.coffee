@@ -279,7 +279,7 @@ class exports.ProtoSparker
 			layerFns = []
 			layerActionsArray = []
 
-			# if the layer has a ._info.originalName, it's an imported layer. use it!
+			# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
 			if layer._info and layer._info.originalName
 				layerActionsArray = layer._info.originalName.split(';')
 			else
@@ -316,7 +316,7 @@ class exports.ProtoSparker
 	getLayerName: (layer) ->
 		try
 			layerName = ""
-			# if the layer has a ._info.originalName, it's an imported layer. use it!
+			# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
 			if layer._info and layer._info.originalName
 				layerName = layer._info.originalName
 			else
@@ -515,15 +515,20 @@ class exports.ProtoSparker
 		head.appendChild style
 
 		# Generating text fields
-		ff('text-field*').forEach (field) =>
+		ff('text-field*,text_field*').forEach (field) =>
 			field.html = "<input placeholder=\"#{@options.textField.placeholderText}\" class=\"#{@options.textField.defaultClass}\" />"
 
 		# Generating select boxes
-		ff('select-field*').forEach (field, index) =>
+		ff('select-field*,select_field*').forEach (field, index) =>
 			optString = "<option selected disabled style=\"color: red\">#{@options.selectField.placeholderText}</option>"
 
 			layerName = @getLayerName field
-			actions = parse(layerName).filter (action) -> return action.action == 'select-field'
+			actions = parse(layerName).filter (action) ->
+				# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
+				if field._info and field._info.originalName
+					return action.action == 'select-field'
+				else
+					return action.action == 'select_field'
 			action = actions[0] || null
 
 			if action
@@ -606,13 +611,13 @@ class exports.ProtoSparker
 _getHierarchy = (layer) ->
 	string = ''
 	for a in layer.ancestors()
-		# if the layer has a ._info.originalName, it's an imported layer. use it!
+		# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
 		if a._info and a._info.originalName
 			string = a._info.originalName+'>'+string
 		else
 			string = a.name+'>'+string
 
-	# if the layer has a ._info.originalName, it's an imported layer. use it!
+	# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
 	if layer._info and layer._info.originalName
 		string = string+layer._info.originalName
 	else
@@ -637,7 +642,7 @@ _findAll = (selector, fromLayer) ->
 		stringNeedsRegex = _.find ['*',' ','>',','], (c) -> _.includes selector,c
 		unless stringNeedsRegex or fromLayer
 			layers = _.filter layers, (layer) ->
-				# if the layer has a ._info.originalName, it's an imported layer. use it!
+				# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
 				if layer._info and layer._info.originalName
 					if layer._info.originalName is selector then true
 				else
@@ -646,7 +651,7 @@ _findAll = (selector, fromLayer) ->
 			layers = _.filter layers, (layer) ->
 				hierarchy = _getHierarchy(layer)
 				if fromLayer?
-					# if the layer has a ._info.originalName, it's an imported layer. use it!
+					# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
 					if fromLayer._info and fromLayer._info.originalName
 						_match(hierarchy, fromLayer._info.originalName+' '+selector)
 					else
