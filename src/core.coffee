@@ -11,6 +11,12 @@
 # TODO: melhorar o @actions para não precisar de hardcoded das ações nos métodos
 # TODO QUESTION: condicionais para exibir ou não elemento?
 
+# _ = require 'lodash' # too big
+find = require 'lodash/find'
+includes = require 'lodash/includes'
+filter = require 'lodash/filter'
+merge = require 'lodash/merge'
+
 exports.parse = parse = (string) ->
 
 	# if actions are divided with spaces, ignore spaces "action1:target; action2:target;"
@@ -210,10 +216,10 @@ class exports.ProtoSparker
 		@options.firstPage ?= null
 
 		@options.textField ?= {}
-		@options.textField = _.merge @defaultTextField, @options.textField
+		@options.textField = merge @defaultTextField, @options.textField
 
 		@options.selectField ?= {}
-		@options.selectField = _.merge @defaultSelectField, @options.selectField
+		@options.selectField = merge @defaultSelectField, @options.selectField
 
 		@actions = [
 			{ selector: "goback", fn: @goBack },
@@ -639,16 +645,16 @@ _findAll = (selector, fromLayer) ->
 	layers = Framer.CurrentContext._layers
 
 	if selector?
-		stringNeedsRegex = _.find ['*',' ','>',','], (c) -> _.includes selector,c
+		stringNeedsRegex = find ['*',' ','>',','], (c) -> includes selector,c
 		unless stringNeedsRegex or fromLayer
-			layers = _.filter layers, (layer) ->
+			layers = filter layers, (layer) ->
 				# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
 				if layer._info and layer._info.originalName
 					if layer._info.originalName is selector then true
 				else
 					if layer.name is selector then true
 		else
-			layers = _.filter layers, (layer) ->
+			layers = filter layers, (layer) ->
 				hierarchy = _getHierarchy(layer)
 				if fromLayer?
 					# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
