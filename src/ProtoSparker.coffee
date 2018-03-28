@@ -1,5 +1,5 @@
 # require('coffee-script/register');
 
-core = require './core'
+{ProtoSparker} = require './core'
 
-module.exports = core.ProtoSparker
+module.exports = ProtoSparker

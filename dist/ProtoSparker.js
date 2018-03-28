@@ -5232,12 +5232,12 @@ var ProtoSparker = (function () {
 	var core_4 = core.ff;
 
 	// require('coffee-script/register');
-	var core$1;
+	var ProtoSparker;
 
-	core$1 = core;
+	({ProtoSparker} = core);
 
-	var ProtoSparker = core$1.ProtoSparker;
+	var ProtoSparker_1 = ProtoSparker;
 
-	return ProtoSparker;
+	return ProtoSparker_1;
 
 }());
