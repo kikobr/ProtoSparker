@@ -17,6 +17,12 @@ includes = require 'lodash/includes'
 filter = require 'lodash/filter'
 merge = require 'lodash/merge'
 
+transitions = require './transitions'
+SvgImporter = require '../importer/svgImporter'
+transitions = require './transitions'
+f = require('./find').f
+ff = require('./find').ff
+
 exports.parse = parse = (string) ->
 
 	# if actions are divided with spaces, ignore spaces "action1:target; action2:target;"
@@ -58,120 +64,12 @@ exports.parse = parse = (string) ->
 
 timeDefault = 0.5
 timeFast = 0.2
-transitions =
-	fade: (nav, layerA, layerB, overlay) ->
-		transition =
-			layerA:
-				show:
-					opacity: 1
-					options:
-						time: timeDefault
-				hide:
-					opacity: 0
-					options:
-						time: timeDefault
-			layerB:
-				show:
-					opacity: 1
-					options:
-						time: timeDefault
-				hide:
-					opacity: 0
-					options:
-						time: timeDefault
-	slideUp: (nav, layerA, layerB, overlay) ->
-		transition =
-			layerA:
-				show:
-					opacity: 1
-					options:
-						time: timeFast
-				hide:
-					opacity: 0.5
-					options:
-						time: timeFast
-			layerB:
-				show:
-					y: 0
-					opacity: 1
-					options:
-						time: timeDefault
-				hide:
-					y: 500
-					opacity: 0
-					options:
-						time: timeDefault
-	slideDown: (nav, layerA, layerB, overlay) ->
-		transition =
-			layerA:
-				show:
-					opacity: 1
-					options:
-						time: timeFast
-				hide:
-					opacity: 0.5
-					options:
-						time: timeFast
-			layerB:
-				show:
-					y: 0
-					opacity: 1
-					options:
-						time: timeDefault
-				hide:
-					y: -500
-					opacity: 0
-					options:
-						time: timeDefault
-	slideLeft: (nav, layerA, layerB, overlay) ->
-		transition =
-			layerA:
-				show:
-					opacity: 1
-					options:
-						time: timeFast
-				hide:
-					opacity: 0.5
-					options:
-						time: timeFast
-			layerB:
-				show:
-					x: 0
-					opacity: 1
-					options:
-						time: timeDefault
-				hide:
-					x: 500
-					opacity: 0
-					options:
-						time: timeDefault
-	slideRight: (nav, layerA, layerB, overlay) ->
-		transition =
-			layerA:
-				show:
-					opacity: 1
-					options:
-						time: timeFast
-				hide:
-					opacity: 0.5
-					options:
-						time: timeFast
-			layerB:
-				show:
-					x: 0
-					opacity: 1
-					options:
-						time: timeDefault
-				hide:
-					x: -500
-					opacity: 0
-					options:
-						time: timeDefault
 
 class exports.ProtoSparker
 
 	actions: []
 	actionLayers: []
+	importer: null
 
 	defaultTextField:
 		defaultClass: "ps-text-field"
@@ -220,6 +118,12 @@ class exports.ProtoSparker
 
 		@options.selectField ?= {}
 		@options.selectField = merge @defaultSelectField, @options.selectField
+
+		@options.svgImport ?= null
+		if @options.svgImport
+			# setup import before instantianting ProtoSparker
+			@importer = new SvgImporter(@options.svgImport)
+			return false
 
 		@actions = [
 			{ selector: "goback", fn: @goBack },
@@ -612,60 +516,3 @@ class exports.ProtoSparker
 				element.x = defaultElement.x
 				element.y = defaultElement.y
 				element.visible = false
-
-# f, ff
-_getHierarchy = (layer) ->
-	string = ''
-	for a in layer.ancestors()
-		# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
-		if a._info and a._info.originalName
-			string = a._info.originalName+'>'+string
-		else
-			string = a.name+'>'+string
-
-	# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
-	if layer._info and layer._info.originalName
-		string = string+layer._info.originalName
-	else
-		string = string+layer.name
-	return string
-
-_match = (hierarchy, string) ->
-  # prepare regex tokens
-  string = string.replace(/\s*>\s*/g,'>') # clean up spaces around arrows
-  string = string.split('*').join('[^>]*') # asteriks as layer name wildcard
-  string = string.split(' ').join('(?:.*)>') # space as structure wildcard
-  string = string.split(',').join('$|') # allow multiple searches using comma
-  regexString = "(^|>)"+string+"$" # always bottom layer, maybe part of hierarchy
-
-  regExp = new RegExp(regexString)
-  return hierarchy.match(regExp)
-
-_findAll = (selector, fromLayer) ->
-	layers = Framer.CurrentContext._layers
-
-	if selector?
-		stringNeedsRegex = find ['*',' ','>',','], (c) -> includes selector,c
-		unless stringNeedsRegex or fromLayer
-			layers = filter layers, (layer) ->
-				# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
-				if layer._info and layer._info.originalName
-					if layer._info.originalName is selector then true
-				else
-					if layer.name is selector then true
-		else
-			layers = filter layers, (layer) ->
-				hierarchy = _getHierarchy(layer)
-				if fromLayer?
-					# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
-					if fromLayer._info and fromLayer._info.originalName
-						_match(hierarchy, fromLayer._info.originalName+' '+selector)
-					else
-						_match(hierarchy, fromLayer.name+' '+selector)
-				else
-					_match(hierarchy, selector)
-	else
-		layers
-
-f = exports.f = (selector, fromLayer) -> _findAll(selector, fromLayer)[0]
-ff = exports.ff = (selector, fromLayer) -> _findAll(selector, fromLayer)
