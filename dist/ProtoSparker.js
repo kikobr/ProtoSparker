@@ -2927,15 +2927,70 @@ var ProtoSparker = (function () {
 	  return head.appendChild(style$$1);
 	};
 
-	var traverse;
+	var getViewBox$2, traverse;
+
+	({getViewBox: getViewBox$2} = utils);
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var child, i, j, len, ref, results;
+	  var child, createdLayer, i, importId, j, layer, layerParams, layerSvg, len, name, ref, results, svg, svgBoundingClientRect, viewBox;
+	  // ignoring mask
+	  if (node.nodeName === 'mask') {
+	    return false;
+	  }
+	  // setting active classes to hidden layers so that we can calculate getBoundingClientRect() correctly
+	  if (node.parentNode && node.parentNode.nodeName === 'svg') {
+	    importId = node.closest('[data-import-id]').getAttribute('data-import-id');
+	    document.querySelectorAll("#svgContainer > [data-import-id]").forEach(function(el) {
+	      if (el.getAttribute('data-import-id' === importId)) {
+	        return el.classList.add('active');
+	      } else {
+	        return el.classList.remove('active');
+	      }
+	    });
+	  }
+	  // main variables
+	  createdLayer = null;
+	  svg = node.closest('svg');
+	  svgBoundingClientRect = node.getBoundingClientRect();
+	  name = node.getAttribute('data-name' || node.getAttribute('id'));
+	  // qt = decodeMatrix node
+	  // computedStyle = getComputedStyle node
+	  viewBox = getViewBox$2(node);
+	  // get default layer params
+	  layerParams = {
+	    name: name,
+	    frame: {},
+	    backgroundColor: 'rgba(0,0,0,0.1)',
+	    x: Math.floor(svgBoundingClientRect.x),
+	    y: Math.floor(svgBoundingClientRect.y),
+	    width: Math.floor(svgBoundingClientRect.width),
+	    height: Math.floor(svgBoundingClientRect.height)
+	  };
+	  // calculates relative position from parent's absolute position
+	  if (parentLayer) {
+	    layerParams.x = layerParams.x - parentLayer.screenFrame.x;
+	    layerParams.y = layerParams.y - parentLayer.screenFrame.y;
+	  }
+	  // this element will be used to store information that will be rendered inside layerParams.image
+	  layerSvg = document.createElement('svg');
+	  layerSvg.setAttribute('xmlns', "http://www.w3.org/2000/svg");
+	  layerSvg.setAttribute('xmlns:xlink', "http://www.w3.org/1999/xlink");
+	  layerSvg.setAttribute('style', 'svg {position: relative;} svg > * {position: absolute; top: 0; left: 0;}');
+	  if (node.nodeName !== 'g' && node.nodeName !== 'use') {
+	    console.log(layerSvg, node);
+	  }
+	  // creating Framer layer
+	  layer = new Layer(layerParams);
+	  if (parentLayer) {
+	    layer.parent = parentLayer;
+	  }
+	  createdLayer = layer;
 	  ref = node.children;
+	  // continue traversing
 	  results = [];
 	  for (i = j = 0, len = ref.length; j < len; i = ++j) {
 	    child = ref[i];
-	    results.push(traverse(child, node, typeof createdLayer !== "undefined" && createdLayer !== null ? createdLayer : {
+	    results.push(traverse(child, node, createdLayer != null ? createdLayer : {
 	      createdLayer: null
 	    }));
 	  }
