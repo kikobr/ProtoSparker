@@ -156,17 +156,15 @@ var PS = (function (exports) {
 	  return head.appendChild(style$$1);
 	};
 
-	var getUseDefs$1, getViewBox$2, traverse;
+	var getUseDefs$1, getViewBox$2, ref, traverse;
 
-	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1} = utils);
+	ref = utils, getViewBox$2 = ref.getViewBox, getUseDefs$1 = ref.getUseDefs;
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var ancestor, child, clipPath, clipPathBBox, clipPathBounds, clipSelector, computedStyle, createdLayer, def, defs, i, importId, inner, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, m, mask, maskSelector, n, name, nodeBBox, nodeBounds, path, ref, ref1, ref2, results, style, svg, url, viewBox;
-	  // ignoring mask
+	  var ancestor, child, clipPath, clipPathBBox, clipPathBounds, clipSelector, computedStyle, createdLayer, def, defs, i, importId, inner, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, m, mask, maskSelector, n, name, nodeBBox, nodeBounds, path, ref1, ref2, ref3, results, style, svg, url, viewBox;
 	  if (node.nodeName === 'mask') {
 	    return false;
 	  }
-	  // setting active classes to hidden layers so that we can calculate getBoundingClientRect() correctly
 	  if (node.parentNode && node.parentNode.nodeName === 'svg') {
 	    importId = node.closest('[data-import-id]').getAttribute('data-import-id');
 	    document.querySelectorAll("#svgContainer > [data-import-id]").forEach(function(el) {
@@ -177,7 +175,6 @@ var PS = (function (exports) {
 	      }
 	    });
 	  }
-	  // main variables
 	  viewBox = getViewBox$2(node);
 	  createdLayer = null;
 	  svg = node.closest('svg');
@@ -185,33 +182,28 @@ var PS = (function (exports) {
 	  nodeBBox = node.getBBox();
 	  name = node.getAttribute('data-name') ? node.getAttribute('data-name') : node.id;
 	  computedStyle = getComputedStyle(node);
-	  // qt = decodeMatrix node
-
-	  // get default layer params
 	  layerParams = {
 	    name: name,
 	    frame: {},
 	    screenFrame: {},
 	    style: {},
 	    clip: false,
-	    // backgroundColor: 'rgba(0,0,0,0.1)'
 	    x: Math.floor(nodeBounds.x),
 	    y: Math.floor(nodeBounds.y),
 	    width: Math.floor(nodeBBox.width),
 	    height: Math.floor(nodeBBox.height)
 	  };
-	  // calculates relative position from parent's absolute position
 	  if (parentLayer) {
 	    layerParams.x -= parentLayer.screenFrame.x;
 	    layerParams.y -= parentLayer.screenFrame.y;
 	  }
-	  // this element will be used to store information that will be rendered inside layerParams.image
 	  layerSvg = document.createElement('svg');
 	  layerSvg.setAttribute('xmlns', "http://www.w3.org/2000/svg");
 	  layerSvg.setAttribute('xmlns:xlink', "http://www.w3.org/1999/xlink");
 	  layerSvg.setAttribute('style', 'position: relative; display: block;');
 	  layerDefs = document.createElement('defs');
 	  layerSvg.appendChild(layerDefs);
+
 	  /*
 	   * Generating inner html and applying transforms so that the svg
 	   * is rendered at 0,0 position of the layer
@@ -227,22 +219,21 @@ var PS = (function (exports) {
 	      }
 	    }
 	    inner = node.cloneNode();
-	    inner.setAttribute('transform', `translate(${-nodeBBox.x} ${-nodeBBox.y})`);
+	    inner.setAttribute('transform', "translate(" + (-nodeBBox.x) + " " + (-nodeBBox.y) + ")");
 	    layerSvg.insertAdjacentElement('afterbegin', inner);
-	  } else if (node.nodeName !== 'g') { // dont clone child nodes because they will be traversed
+	  } else if (node.nodeName !== 'g') {
 	    layerSvg.setAttribute('width', nodeBBox.width);
 	    layerSvg.setAttribute('height', nodeBBox.height);
 	    inner = node.cloneNode(true);
-	    inner.setAttribute('transform', `translate(${-nodeBBox.x} ${-nodeBBox.y})`);
+	    inner.setAttribute('transform', "translate(" + (-nodeBBox.x) + " " + (-nodeBBox.y) + ")");
 	    layerSvg.insertAdjacentElement('afterbegin', inner);
 	  }
+
 	  /*
 	   * Extra layer info
 	   */
-	  // some clip-paths are applied as classes
 	  if (node.hasAttribute('clip-path') || (computedStyle.clipPath && computedStyle.clipPath !== 'none')) {
 	    url = node.getAttribute('clip-path') || computedStyle.clipPath;
-	    // removes "" and ''
 	    url = url.replace('url("', 'url(').replace('url(\'', 'url(').replace(/\"\)$/, ')').replace(/\'\)$/, ')');
 	    clipSelector = url.replace(/(^url\((.+)\)$)/, '$2');
 	    clipPath = svg.querySelector(clipSelector);
@@ -250,13 +241,6 @@ var PS = (function (exports) {
 	    clipPathBounds = clipPath.getBoundingClientRect();
 	    layerParams.width = Math.ceil(clipPathBBox.width);
 	    layerParams.height = Math.ceil(clipPathBBox.height);
-	    // bug? some layers come with a wrong getBoundingClientRect(), like x: -2000.
-	    // trying to simplify with 0.
-	    // layerParams.x = clipPathBounds.x
-	    // layerParams.y = clipPathBounds.y
-	    // if parentLayer
-	    //     layerParams.x -= parentLayer.screenFrame.x
-	    //     layerParams.y -= parentLayer.screenFrame.y
 	    layerParams.x = 0;
 	    layerParams.y = 0;
 	    layerParams.clip = true;
@@ -272,55 +256,47 @@ var PS = (function (exports) {
 	    ancestor = node.closest('[mask]');
 	    maskSelector = ancestor.getAttribute('mask').replace(/(^url\()(.+)(\)$)/, '$2');
 	    mask = svg.querySelector(maskSelector);
-	    ref = mask.querySelectorAll('*');
-	    for (k = 0, len1 = ref.length; k < len1; k++) {
-	      child = ref[k];
+	    ref1 = mask.querySelectorAll('*');
+	    for (k = 0, len1 = ref1.length; k < len1; k++) {
+	      child = ref1[k];
 	      if (child.nodeName === 'use') {
 	        defs = getUseDefs$1(child);
 	        for (l = 0, len2 = defs.length; l < len2; l++) {
 	          def = defs[l];
 	          layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def);
 	        }
-	        child.setAttribute('transform', `translate(${-child.getBBox().x} ${-child.getBBox().y})`);
+	        child.setAttribute('transform', "translate(" + (-child.getBBox().x) + " " + (-child.getBBox().y) + ")");
 	      }
 	    }
-	    ref1 = layerSvg.children;
-	    // apply mask attribute if node does not already have it
-	    for (m = 0, len3 = ref1.length; m < len3; m++) {
-	      child = ref1[m];
+	    ref2 = layerSvg.children;
+	    for (m = 0, len3 = ref2.length; m < len3; m++) {
+	      child = ref2[m];
 	      if (child.nodeName === node.nodeName) {
 	        if (!child.hasAttribute('mask')) {
-	          child.setAttribute('mask', `url(${maskSelector})`);
+	          child.setAttribute('mask', "url(" + maskSelector + ")");
 	        }
 	      }
 	    }
-	    // adds mask to layerSvg
 	    layerSvg.insertAdjacentElement('afterbegin', mask.cloneNode(true));
 	  }
-	  // TODO: print only the css required for the node to render. maybe render svg
-	  // style only one time, parse it and reuse it everytime to get the right string?
 	  if (node.hasAttribute('class')) {
 	    style = svg.querySelector('style');
 	    layerSvg.querySelector('defs').insertAdjacentElement('afterbegin', style.cloneNode(true));
 	  }
+
 	  /*
 	   * End of inner html
 	   */
-	  // applies svg to image data
-	  layerParams.image = `data:image/svg+xml;charset=UTF-8,${layerSvg.outerHTML.replace(/\n|\t/g, ' ') // removes line breaks
-}`;
-	  
-	  // creating Framer layer
+	  layerParams.image = "data:image/svg+xml;charset=UTF-8," + (encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')));
 	  layer = new Layer(layerParams);
 	  if (parentLayer) {
 	    layer.parent = parentLayer;
 	  }
 	  createdLayer = layer;
-	  ref2 = node.children;
-	  // continue traversing
+	  ref3 = node.children;
 	  results = [];
-	  for (i = n = 0, len4 = ref2.length; n < len4; i = ++n) {
-	    child = ref2[i];
+	  for (i = n = 0, len4 = ref3.length; n < len4; i = ++n) {
+	    child = ref3[i];
 	    results.push(traverse(child, node, createdLayer != null ? createdLayer : {
 	      createdLayer: null
 	    }));
