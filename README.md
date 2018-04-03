@@ -31,6 +31,45 @@ That's it! Now go back to your design software, start changing layers names foll
 
 ---
 
+## Using the Importer (beta)
+You can also import SVG files to work with Framer. This means you can use it outside a Mac, with the Framer open source engine. Bear in mind that this Importer is highly experimental and don't expect it to run flawlessly.
+
+Using it inside Framer Studio:
+```coffeescript
+{ProtoSparker, SvgImporter, f} = require 'ProtoSparker'
+importer = new SvgImporter
+    files: ['img/page1.svg', 'img/page2.svg']
+protoSparker = new ProtoSparker
+    firstPage: f('page1') # the name of the artboard
+```
+
+To use it with the open source engine (in plain Javascript) you'll have to first download Framer script ([visit this page and click on the latest framer.js link](http://builds.framerjs.com/?utm_source=GitHub%2C%20framerjs%2C%20readme&utm_medium=Github)). Then, you'll have to include this script alongside ProtoSparker (download it at *dist/ProtoSparker.js*).
+
+```html
+<!DOCTYPE html>
+<html>
+    <head><meta charset="utf-8"></head>
+    <body>
+        <script src="js/framer.min.js"></script>
+        <script src="ProtoSparker.js"></script>
+        <script type="text/javascript">
+            var importer = new SvgImporter({
+                files: [ 'img/page1.svg', 'img/page2.svg' ]
+            });
+            var protoSparker = new ProtoSparker({
+                firstPage: f('page1') // name of the artboard
+            });
+        </script>
+    </body>
+</html>
+```
+
+**Important 1**: you have to serve this page as an HTTP server so that our script can request your svg files. If you have Python installed, simply type `python -m SimpleHTTPServer 8000`, hit enter and visit http://localhost:8000 in your browser. 
+
+**Important 2**: the prototype only works in Chrome for now.
+
+---
+
 # References
 ## Startup options
 [Startup usage](#startup-usage) <br>
