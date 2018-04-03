@@ -109,7 +109,7 @@
                         <use xlink:href="#path1_fill" transform="translate(3056 3505)" fill="#000000" fill-opacity="0.87"/>
                     </g>
                     <g id="Intersect">
-                        <use xlink:href="#path19_fill" fill="url(#pattern5)" transform="translate(2999 3508)"/>
+                        <use id="fotinha" xlink:href="#path19_fill" fill="url(#pattern5)" transform="translate(2999 3508)"/>
                     </g>
                 </g>
                 <g id="Group">
@@ -120,7 +120,7 @@
             </g>
             <g id="goto:message;">
                 <g id="Oval" filter="url(#filter0_dd)">
-                    <use xlink:href="#path21_fill" transform="translate(3271 3886)" fill="#33F552"/>
+                    <use id="bolinha" xlink:href="#path21_fill" transform="translate(3271 3886)" fill="#33F552"/>
                     <mask id="mask0_outline_ins">
                         <use xlink:href="#path21_fill" fill="white" transform="translate(3271 3886)"/>
                     </mask>

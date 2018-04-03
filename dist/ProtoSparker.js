@@ -2821,7 +2821,7 @@ var ProtoSparker = (function () {
 	  }
 	};
 
-	var getRootG, getViewBox;
+	var getFillDefs, getRootG, getUseDefs, getViewBox;
 
 	var getViewBox_1 = getViewBox = function(node) {
 	  var svg, viewBox;
@@ -2850,9 +2850,55 @@ var ProtoSparker = (function () {
 	  return rootG;
 	};
 
+	var getUseDefs_1 = getUseDefs = function(node) {
+	  var defs, fillDefs, i, len, link, linked, linkedSelector, svg;
+	  svg = node.closest("svg");
+	  linkedSelector = node.getAttribute("xlink:href");
+	  linked = svg.querySelectorAll(linkedSelector);
+	  defs = [];
+	  for (i = 0, len = linked.length; i < len; i++) {
+	    link = linked[i];
+	    defs.push(link.cloneNode());
+	  }
+	  fillDefs = getFillDefs(node);
+	  if (fillDefs) {
+	    defs = defs.concat(fillDefs); // comes cloned
+	  }
+	  return defs;
+	};
+
+	var getFillDefs_1 = getFillDefs = function(node) {
+	  var defs, fill, fillUrl, i, len, svg, use, useDefs, uses;
+	  defs = [];
+	  if (node.hasAttribute("fill") && node.getAttribute("fill").match("url")) {
+	    svg = node.closest("svg");
+	    fillUrl = node.getAttribute('fill').replace(/(^url\()(.+)(\)$)/, '$2');
+	    fill = svg.querySelector(fillUrl);
+	    defs.push(fill.cloneNode(true));
+	    // get uses if this fill contains them
+	    if (fill.querySelector('use')) {
+	      uses = fill.querySelectorAll('use');
+	      for (i = 0, len = uses.length; i < len; i++) {
+	        use = uses[i];
+	        useDefs = getUseDefs(use);
+	        if (useDefs) {
+	          defs = defs.concat(useDefs); // comes cloned
+	        }
+	      }
+	    }
+	  }
+	  
+	  // if fill.id == 'pattern5'
+	  //     console.log(fill.querySelector)
+	  //     console.log(defs)
+	  return defs;
+	};
+
 	var utils = {
 		getViewBox: getViewBox_1,
-		getRootG: getRootG_1
+		getRootG: getRootG_1,
+		getUseDefs: getUseDefs_1,
+		getFillDefs: getFillDefs_1
 	};
 
 	var getRootG$1, getViewBox$1;
@@ -2902,7 +2948,7 @@ var ProtoSparker = (function () {
 	  return this.svgContainer.insertAdjacentElement('afterbegin', importNode);
 	};
 
-	var style = "#svgContainer {\n    visibility: hidden;\n    display: block;\n    position: relative;\n    z-index: 999;\n}\n#svgContainer [data-import-id] {\n    position: absolute;\n    top: 0;\n    left: 0;\n    z-index: 1;\n}\n#svgContainer [data-import-id].active {\n    z-index: 2;\n    position: relative;\n}";
+	var style = "html, body {\n    margin: 0;\n    padding: 0;\n}\n#svgContainer {\n    visibility: hidden;\n    display: block;\n    position: relative;\n    z-index: 999;\n}\n#svgContainer [data-import-id] {\n    position: absolute;\n    top: 0;\n    left: 0;\n    z-index: 1;\n}\n#svgContainer [data-import-id].active {\n    z-index: 2;\n    position: relative;\n}";
 
 	var svgContainerStyle;
 
@@ -2913,7 +2959,7 @@ var ProtoSparker = (function () {
 	  // create a container for the svgs
 	  this.svgContainer = document.createElement('div');
 	  this.svgContainer.id = 'svgContainer';
-	  document.body.appendChild(this.svgContainer);
+	  document.body.insertAdjacentElement('afterbegin', this.svgContainer);
 	  // create style and classes for the svgContainer
 	  css = svgContainerStyle;
 	  head = document.head || document.getElementsByTagName('head')[0];
@@ -2927,12 +2973,12 @@ var ProtoSparker = (function () {
 	  return head.appendChild(style$$1);
 	};
 
-	var getViewBox$2, traverse;
+	var getUseDefs$1, getViewBox$2, traverse;
 
-	({getViewBox: getViewBox$2} = utils);
+	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1} = utils);
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var child, createdLayer, i, importId, j, layer, layerParams, layerSvg, len, name, ref, results, svg, svgBoundingClientRect, viewBox;
+	  var child, createdLayer, def, defs, i, importId, inner, j, k, layer, layerDefs, layerParams, layerSvg, len, len1, name, nodeBBox, nodeBounds, ref, results, svg, viewBox;
 	  // ignoring mask
 	  if (node.nodeName === 'mask') {
 	    return false;
@@ -2949,22 +2995,25 @@ var ProtoSparker = (function () {
 	    });
 	  }
 	  // main variables
+	  viewBox = getViewBox$2(node);
 	  createdLayer = null;
 	  svg = node.closest('svg');
-	  svgBoundingClientRect = node.getBoundingClientRect();
-	  name = node.getAttribute('data-name' || node.getAttribute('id'));
+	  nodeBounds = node.getBoundingClientRect();
+	  nodeBBox = node.getBBox();
+	  name = node.getAttribute('data-name') ? node.getAttribute('data-name') : node.id;
 	  // qt = decodeMatrix node
 	  // computedStyle = getComputedStyle node
-	  viewBox = getViewBox$2(node);
+
 	  // get default layer params
 	  layerParams = {
 	    name: name,
 	    frame: {},
-	    backgroundColor: 'rgba(0,0,0,0.1)',
-	    x: Math.floor(svgBoundingClientRect.x),
-	    y: Math.floor(svgBoundingClientRect.y),
-	    width: Math.floor(svgBoundingClientRect.width),
-	    height: Math.floor(svgBoundingClientRect.height)
+	    style: {},
+	    // backgroundColor: 'rgba(0,0,0,0.1)'
+	    x: Math.floor(nodeBounds.x),
+	    y: Math.floor(nodeBounds.y),
+	    width: Math.floor(nodeBBox.width),
+	    height: Math.floor(nodeBBox.height)
 	  };
 	  // calculates relative position from parent's absolute position
 	  if (parentLayer) {
@@ -2975,10 +3024,41 @@ var ProtoSparker = (function () {
 	  layerSvg = document.createElement('svg');
 	  layerSvg.setAttribute('xmlns', "http://www.w3.org/2000/svg");
 	  layerSvg.setAttribute('xmlns:xlink', "http://www.w3.org/1999/xlink");
-	  layerSvg.setAttribute('style', 'svg {position: relative;} svg > * {position: absolute; top: 0; left: 0;}');
-	  if (node.nodeName !== 'g' && node.nodeName !== 'use') {
-	    console.log(layerSvg, node);
+	  layerSvg.setAttribute('style', 'position: relative; display: block;');
+	  // layerSvg.setAttribute 'style', 'svg {position: relative;} svg > * {position: absolute; top: 0; left: 0;}'
+	  layerDefs = document.createElement('defs');
+	  layerSvg.appendChild(layerDefs);
+	  /*
+	   * Generating inner svg
+	   */
+	  if (node.nodeName === 'use') {
+	    layerSvg.setAttribute('width', nodeBBox.width);
+	    layerSvg.setAttribute('height', nodeBBox.height);
+	    defs = getUseDefs$1(node);
+	    inner = node.cloneNode();
+	    inner.setAttribute('transform', `translate(${-nodeBBox.x} ${-nodeBBox.y})`);
+	    layerSvg.insertAdjacentElement('afterbegin', inner);
+	    if (defs) {
+	      for (j = 0, len = defs.length; j < len; j++) {
+	        def = defs[j];
+	        layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def);
+	      }
+	    }
+	  } else if (node.nodeName !== 'use') {
+	    if (name === 'yellow') {
+	      console.log(node.getBBox());
+	    }
+	    layerSvg.setAttribute('width', nodeBBox.width);
+	    layerSvg.setAttribute('height', nodeBBox.height);
+	    inner = node.cloneNode(true);
+	    inner.setAttribute('transform', `translate(${-nodeBBox.x} ${-nodeBBox.y})`);
+	    layerSvg.insertAdjacentElement('afterbegin', inner);
 	  }
+	  // document.body.appendChild layerSvg
+	  // console.log layerParams)
+	  layerParams.image = `data:image/svg+xml;charset=UTF-8,${layerSvg.outerHTML.replace(/\n/g, '') // removes line breaks
+}`;
+	  
 	  // creating Framer layer
 	  layer = new Layer(layerParams);
 	  if (parentLayer) {
@@ -2988,7 +3068,7 @@ var ProtoSparker = (function () {
 	  ref = node.children;
 	  // continue traversing
 	  results = [];
-	  for (i = j = 0, len = ref.length; j < len; i = ++j) {
+	  for (i = k = 0, len1 = ref.length; k < len1; i = ++k) {
 	    child = ref[i];
 	    results.push(traverse(child, node, createdLayer != null ? createdLayer : {
 	      createdLayer: null

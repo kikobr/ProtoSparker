@@ -4,7 +4,7 @@ module.exports = () ->
     # create a container for the svgs
     @svgContainer = document.createElement 'div'
     @svgContainer.id = 'svgContainer'
-    document.body.appendChild @svgContainer
+    document.body.insertAdjacentElement 'afterbegin', @svgContainer
 
     # create style and classes for the svgContainer
     css = svgContainerStyle

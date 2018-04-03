@@ -1,4 +1,8 @@
 module.exports = """
+    html, body {
+        margin: 0;
+        padding: 0;
+    }
     #svgContainer {
         visibility: hidden;
         display: block;
