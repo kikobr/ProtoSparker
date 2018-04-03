@@ -9,7 +9,8 @@ export default {
     output: {
         file: 'dist/ProtoSparker.js',
         format: 'iife',
-        name: 'ProtoSparker'
+        name: 'PS',
+        exports: 'named',
     },
     watch: {
         include: 'src/**'

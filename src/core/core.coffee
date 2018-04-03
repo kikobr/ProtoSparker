@@ -11,17 +11,11 @@
 # TODO: melhorar o @actions para não precisar de hardcoded das ações nos métodos
 # TODO QUESTION: condicionais para exibir ou não elemento?
 
-# _ = require 'lodash' # too big
-find = require 'lodash/find'
-includes = require 'lodash/includes'
-filter = require 'lodash/filter'
+transitions = require './transitions'
+transitions = require './transitions'
+exports.f = f = require('./find').f
+exports.ff = ff = require('./find').ff
 merge = require 'lodash/merge'
-
-transitions = require './transitions'
-SvgImporter = require '../importer/svgImporter'
-transitions = require './transitions'
-f = require('./find').f
-ff = require('./find').ff
 
 exports.parse = parse = (string) ->
 
@@ -62,14 +56,10 @@ exports.parse = parse = (string) ->
 
 	return actions
 
-timeDefault = 0.5
-timeFast = 0.2
-
 class exports.ProtoSparker
 
 	actions: []
 	actionLayers: []
-	importer: null
 
 	defaultTextField:
 		defaultClass: "ps-text-field"
@@ -111,19 +101,16 @@ class exports.ProtoSparker
 
 	constructor: (@options={}) ->
 		# Opts
+
 		@options.firstPage ?= null
+		if typeof @options.firstPage == 'string'
+			@options.firstPage = f(@options.firstPage)
 
 		@options.textField ?= {}
 		@options.textField = merge @defaultTextField, @options.textField
 
 		@options.selectField ?= {}
 		@options.selectField = merge @defaultSelectField, @options.selectField
-
-		@options.svgImport ?= null
-		if @options.svgImport
-			# setup import before instantianting ProtoSparker
-			@importer = new SvgImporter(@options.svgImport)
-			return false
 
 		@actions = [
 			{ selector: "goback", fn: @goBack },
@@ -137,8 +124,13 @@ class exports.ProtoSparker
 
 		default_w = @options.firstPage.width
 		default_h = @options.firstPage.height
-		screen_width = Framer.Device.screen.width
-		screen_height = Framer.Device.screen.height
+
+		if Framer.Device and Framer.Device.screen
+			screen_width = Framer.Device.screen.width
+			screen_height = Framer.Device.screen.height
+		else
+			screen_width = window.innerWidth
+			screen_height = window.innerHeight
 
 		# Something is fucked up when running the prototype on framer.cloud on chrome.
 		# Prototype is seems to overflow window height.
@@ -211,6 +203,7 @@ class exports.ProtoSparker
 				# hide overlay layers when prototype boots up
 				action = actions[overlayIndex]
 				destinationLayer = f(action.target)
+				if not destinationLayer then return
 				destinationLayer.visible = false
 
 		@generateFields()
@@ -249,6 +242,7 @@ class exports.ProtoSparker
 		action = actions[0]
 
 		destinationLayer = f(action.target)
+		if not destinationLayer then return
 		destinationLayer.x = 0
 		destinationLayer.y = 0
 
@@ -268,6 +262,7 @@ class exports.ProtoSparker
 			return action.action == 'overlay'
 		action = actions[0]
 		destinationLayer = f(action.target)
+		if not destinationLayer then return
 
 		topIndex = action.options.findIndex (i) -> i.name == "top"
 		rightIndex = action.options.findIndex (i) -> i.name == "right"
@@ -515,4 +510,5 @@ class exports.ProtoSparker
 				element.placeBehind defaultElement
 				element.x = defaultElement.x
 				element.y = defaultElement.y
+				element.opacity = 1
 				element.visible = false

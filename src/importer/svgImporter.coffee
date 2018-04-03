@@ -2,14 +2,17 @@ loadFile = require './loadFile'
 setupContainer = require './setupContainer'
 traverse = require './traverse'
 
-module.exports = class SvgImporter
+class exports.SvgImporter
 
     type: 'svg'
+    loading: false
     svgContainer: null
     setupContainer: setupContainer
 
-    constructor: (@files=[]) ->
+    constructor: (@options={ files: [] }) ->
+        @files ?= @options.files
         return false if not @files
+        @loading = true
         @setupContainer()
         @loadFile file, index for file, index in @files
 
@@ -19,3 +22,6 @@ module.exports = class SvgImporter
 
         # traversing
         traverse svgTraverse
+
+        if index == @files.length - 1
+            @loading = false

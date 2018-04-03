@@ -4,9 +4,9 @@ module.exports = (file, index) ->
     console.log("loading #{file}")
 
     xhr = new XMLHttpRequest()
-    xhr.open "GET", file, false
+    xhr.open("GET", file, false)
     xhr.overrideMimeType "image/svg+xml"
-    xhr.send ""
+    xhr.send null
 
     svg = xhr.responseXML.documentElement;
 

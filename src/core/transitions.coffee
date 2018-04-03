@@ -1,3 +1,6 @@
+timeDefault = 0.5
+timeFast = 0.2
+
 module.exports =
 	fade: (nav, layerA, layerB, overlay) ->
 		transition =

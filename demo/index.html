@@ -9,13 +9,18 @@
         <script src="js/framer.min.js"></script>
         <script src="ProtoSparker.js"></script>
         <script type="text/javascript">
-            var protoSparker = new ProtoSparker({
-                svgImport: [
-                    // 'img/home.svg',
-                    // 'img/consulta-filoo.svg',
+            var importer = new SvgImporter({
+                files: [
+                    'img/home.svg',
+                    'img/drawer.svg',
+                    'img/settings.svg',
+                    'img/message.svg',
                     // 'img/page1.svg',
-                    'img/xd_svg.svg',
+                    // 'img/xd_svg.svg',
                 ]
+            });
+            var protoSparker = new ProtoSparker({
+                firstPage: f('Home')
             });
         </script>
     </body>

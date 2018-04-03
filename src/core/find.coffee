@@ -1,3 +1,8 @@
+# _ = require 'lodash' # too big
+find = require 'lodash/find'
+includes = require 'lodash/includes'
+filter = require 'lodash/filter'
+
 # f, ff
 _getHierarchy = (layer) ->
 	string = ''
