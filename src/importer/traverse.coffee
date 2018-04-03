@@ -21,14 +21,16 @@ module.exports = traverse = (node, parent, parentLayer) ->
     nodeBBox = node.getBBox()
     name = if node.getAttribute 'data-name' then node.getAttribute 'data-name' else node.id
     skipChildren = false
+    computedStyle = getComputedStyle node
     # qt = decodeMatrix node
-    # computedStyle = getComputedStyle node
 
     # get default layer params
     layerParams =
         name: name
         frame: {}
+        screenFrame: {}
         style: {}
+        clip: false
         # backgroundColor: 'rgba(0,0,0,0.1)'
         x: Math.floor nodeBounds.x
         y: Math.floor nodeBounds.y
@@ -36,9 +38,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
         height: Math.floor nodeBBox.height
     # calculates relative position from parent's absolute position
     if parentLayer
-        layerParams.x = layerParams.x - parentLayer.screenFrame.x
-        layerParams.y = layerParams.y - parentLayer.screenFrame.y
-
+        layerParams.x -= parentLayer.screenFrame.x
+        layerParams.y -= parentLayer.screenFrame.y
 
     # this element will be used to store information that will be rendered inside layerParams.image
     layerSvg = document.createElement 'svg'
@@ -76,6 +77,35 @@ module.exports = traverse = (node, parent, parentLayer) ->
     # Extra layer info
     ###
 
+    # some clip-paths are applied as classes
+    if node.hasAttribute('clip-path') or (computedStyle.clipPath and computedStyle.clipPath != 'none')
+        url = node.getAttribute('clip-path') or computedStyle.clipPath
+        # removes "" and ''
+        url = url.replace('url("', 'url(').replace('url(\'', 'url(')
+            .replace(/\"\)$/, ')').replace(/\'\)$/, ')')
+
+        clipSelector = url.replace(/(^url\((.+)\)$)/, '$2')
+        clipPath = svg.querySelector clipSelector
+        clipPathBBox = clipPath.getBBox()
+        clipPathBounds = clipPath.getBoundingClientRect()
+
+        layerParams.width = Math.ceil clipPathBBox.width
+        layerParams.height = Math.ceil clipPathBBox.height
+        # bug? some layers come with a wrong getBoundingClientRect(), like x: -2000.
+        # trying to simplify with 0.
+        # layerParams.x = clipPathBounds.x
+        # layerParams.y = clipPathBounds.y
+        # if parentLayer
+        #     layerParams.x -= parentLayer.screenFrame.x
+        #     layerParams.y -= parentLayer.screenFrame.y
+        layerParams.x = 0
+        layerParams.y = 0
+        layerParams.clip = true
+
+        if clipPath.children.length == 1 and node.children[0].nodeName == 'path'
+            path = node.children[0]
+            layerParams.backgroundColor = path.getAttribute 'fill'
+
     if node.hasAttribute 'opacity' then layerParams.opacity = parseFloat node.getAttribute('opacity')
 
     if node.closest('[mask]') and node.nodeName != 'g'
@@ -94,13 +124,18 @@ module.exports = traverse = (node, parent, parentLayer) ->
         # adds mask to layerSvg
         layerSvg.insertAdjacentElement 'afterbegin', mask.cloneNode(true)
 
+    # TODO: print only the css required for the node to render. maybe render svg
+    # style only one time, parse it and reuse it everytime to get the right string?
+    if node.hasAttribute 'class'
+        style = svg.querySelector('style')
+        layerSvg.querySelector('defs').insertAdjacentElement 'afterbegin', style.cloneNode(true)
+
     ###
     # End of inner html
     ###
 
-
     # applies svg to image data
-    layerParams.image = "data:image/svg+xml;charset=UTF-8,#{layerSvg.outerHTML.replace(/\n/g, '')}" # removes line breaks
+    layerParams.image = "data:image/svg+xml;charset=UTF-8,#{layerSvg.outerHTML.replace(/\n|\t/g, ' ')}" # removes line breaks
 
     # creating Framer layer
     layer = new Layer layerParams
