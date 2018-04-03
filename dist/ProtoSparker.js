@@ -2887,10 +2887,6 @@ var ProtoSparker = (function () {
 	      }
 	    }
 	  }
-	  
-	  // if fill.id == 'pattern5'
-	  //     console.log(fill.querySelector)
-	  //     console.log(defs)
 	  return defs;
 	};
 
@@ -2978,7 +2974,7 @@ var ProtoSparker = (function () {
 	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1} = utils);
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var child, createdLayer, def, defs, i, importId, inner, j, k, layer, layerDefs, layerParams, layerSvg, len, len1, name, nodeBBox, nodeBounds, ref, results, svg, viewBox;
+	  var ancestor, child, createdLayer, def, defs, i, importId, inner, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, m, mask, maskSelector, n, name, nodeBBox, nodeBounds, ref, ref1, ref2, results, svg, viewBox;
 	  // ignoring mask
 	  if (node.nodeName === 'mask') {
 	    return false;
@@ -3025,37 +3021,71 @@ var ProtoSparker = (function () {
 	  layerSvg.setAttribute('xmlns', "http://www.w3.org/2000/svg");
 	  layerSvg.setAttribute('xmlns:xlink', "http://www.w3.org/1999/xlink");
 	  layerSvg.setAttribute('style', 'position: relative; display: block;');
-	  // layerSvg.setAttribute 'style', 'svg {position: relative;} svg > * {position: absolute; top: 0; left: 0;}'
 	  layerDefs = document.createElement('defs');
 	  layerSvg.appendChild(layerDefs);
 	  /*
-	   * Generating inner svg
+	   * Generating inner html and applying transforms so that the svg
+	   * is rendered at 0,0 position of the layer
 	   */
 	  if (node.nodeName === 'use') {
 	    layerSvg.setAttribute('width', nodeBBox.width);
 	    layerSvg.setAttribute('height', nodeBBox.height);
 	    defs = getUseDefs$1(node);
-	    inner = node.cloneNode();
-	    inner.setAttribute('transform', `translate(${-nodeBBox.x} ${-nodeBBox.y})`);
-	    layerSvg.insertAdjacentElement('afterbegin', inner);
 	    if (defs) {
 	      for (j = 0, len = defs.length; j < len; j++) {
 	        def = defs[j];
 	        layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def);
 	      }
 	    }
-	  } else if (node.nodeName !== 'use') {
-	    if (name === 'yellow') {
-	      console.log(node.getBBox());
-	    }
+	    inner = node.cloneNode();
+	    inner.setAttribute('transform', `translate(${-nodeBBox.x} ${-nodeBBox.y})`);
+	    layerSvg.insertAdjacentElement('afterbegin', inner);
+	  } else if (node.nodeName !== 'g') { // dont clone child nodes because they will be traversed
 	    layerSvg.setAttribute('width', nodeBBox.width);
 	    layerSvg.setAttribute('height', nodeBBox.height);
 	    inner = node.cloneNode(true);
 	    inner.setAttribute('transform', `translate(${-nodeBBox.x} ${-nodeBBox.y})`);
 	    layerSvg.insertAdjacentElement('afterbegin', inner);
 	  }
-	  // document.body.appendChild layerSvg
-	  // console.log layerParams)
+	  /*
+	   * Extra layer info
+	   */
+	  if (node.hasAttribute('opacity')) {
+	    layerParams.opacity = parseFloat(node.getAttribute('opacity'));
+	  }
+	  if (node.closest('[mask]') && node.nodeName !== 'g') {
+	    ancestor = node.closest('[mask]');
+	    maskSelector = ancestor.getAttribute('mask').replace(/(^url\()(.+)(\)$)/, '$2');
+	    mask = svg.querySelector(maskSelector);
+	    ref = mask.querySelectorAll('*');
+	    for (k = 0, len1 = ref.length; k < len1; k++) {
+	      child = ref[k];
+	      if (child.nodeName === 'use') {
+	        defs = getUseDefs$1(child);
+	        for (l = 0, len2 = defs.length; l < len2; l++) {
+	          def = defs[l];
+	          layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def);
+	        }
+	        child.setAttribute('transform', `translate(${-child.getBBox().x} ${-child.getBBox().y})`);
+	      }
+	    }
+	    ref1 = layerSvg.children;
+	    // apply mask attribute if node does not already have it
+	    for (m = 0, len3 = ref1.length; m < len3; m++) {
+	      child = ref1[m];
+	      if (child.nodeName === node.nodeName) {
+	        if (!child.hasAttribute('mask')) {
+	          child.setAttribute('mask', `url(${maskSelector})`);
+	        }
+	      }
+	    }
+	    // adds mask to layerSvg
+	    layerSvg.insertAdjacentElement('afterbegin', mask.cloneNode(true));
+	  }
+	  /*
+	   * End of inner html
+	   */
+	  // applies svg to image data
 	  layerParams.image = `data:image/svg+xml;charset=UTF-8,${layerSvg.outerHTML.replace(/\n/g, '') // removes line breaks
 }`;
 	  
@@ -3065,11 +3095,11 @@ var ProtoSparker = (function () {
 	    layer.parent = parentLayer;
 	  }
 	  createdLayer = layer;
-	  ref = node.children;
+	  ref2 = node.children;
 	  // continue traversing
 	  results = [];
-	  for (i = k = 0, len1 = ref.length; k < len1; i = ++k) {
-	    child = ref[i];
+	  for (i = n = 0, len4 = ref2.length; n < len4; i = ++n) {
+	    child = ref2[i];
 	    results.push(traverse(child, node, createdLayer != null ? createdLayer : {
 	      createdLayer: null
 	    }));

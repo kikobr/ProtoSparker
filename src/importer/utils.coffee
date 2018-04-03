@@ -23,7 +23,6 @@ exports.getUseDefs = getUseDefs = (node) ->
 
     fillDefs = getFillDefs node
     if fillDefs then defs = defs.concat fillDefs # comes cloned
-
     return defs
 
 exports.getFillDefs = getFillDefs = (node) ->
@@ -40,8 +39,4 @@ exports.getFillDefs = getFillDefs = (node) ->
             for use in uses
                 useDefs = getUseDefs use
                 if useDefs then defs = defs.concat useDefs # comes cloned
-
-            # if fill.id == 'pattern5'
-            #     console.log(fill.querySelector)
-            #     console.log(defs)
     return defs;
