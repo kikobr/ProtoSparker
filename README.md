@@ -66,7 +66,7 @@ First you'll have to download Framer.js library ([visit this page and click on t
 </html>
 ```
 
-**Important 1**: you have to serve this page as an HTTP server so that our script can request your svg files. If you have Python installed, simply type `python -m SimpleHTTPServer 8000`, hit enter and visit http://localhost:8000 in your browser.
+**Important 1**: you have to serve this page as an HTTP server so that our script can request your svg files. If you have Python installed, simply type `python -m SimpleHTTPServer 8000` or `python -m http.server 8000`, hit enter and visit http://localhost:8000 in your browser.
 
 **Important 2**: this prototype won't run on Firefox since it has a bug dealing with .getBBox() on hidden SVG elements. :/
 

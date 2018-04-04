@@ -126,25 +126,39 @@ module.exports = traverse = (node, parent, parentLayer) ->
         ancestor = node.closest '[mask]'
         maskSelector = ancestor.getAttribute('mask').replace(/(^url\()(.+)(\)$)/, '$2')
         mask = svg.querySelector maskSelector
-        for child in mask.querySelectorAll('*')
+        maskClone = mask.cloneNode true
+
+        for child, index in mask.querySelectorAll('*')
             if child.nodeName == 'use'
                 defs = getUseDefs child
                 layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def) for def in defs
-                try
-                    child.setAttribute 'transform', "translate(#{-child.getBBox().x} #{-child.getBBox().y})"
-                catch e then console.log "Error: #{e}"
+                childBBox = child.getBBox()
+                childBounds = child.getBoundingClientRect()
+                childOriginalT = child.getAttribute('transform') and child.getAttribute('transform').match(/translate\(([^)]+)\)/)
+
+                childTx = Math.floor (childBounds.x or childBounds.left)
+                childTy = Math.floor (childBounds.y or childBounds.top)
+                if parentLayer
+                    childTx -= parentLayer.screenFrame.x
+                    childTy -= parentLayer.screenFrame.y
+
+                # apply transforms over the clone, not the original svg
+                childClone = maskClone.querySelectorAll('*')[index]
+                childClone.setAttribute 'transform', "translate(#{childTx} #{childTy})"
+
         # apply mask attribute if node does not already have it
         for child in layerSvg.children
             if child.nodeName == node.nodeName
                 if not child.hasAttribute 'mask' then child.setAttribute 'mask', "url(#{maskSelector})"
         # adds mask to layerSvg
-        layerSvg.insertAdjacentElement 'afterbegin', mask.cloneNode(true)
+        layerSvg.insertAdjacentElement 'afterbegin', maskClone
 
     # TODO: print only the css required for the node to render. maybe render svg
     # style only one time, parse it and reuse it everytime to get the right string?
     if node.hasAttribute 'class'
         style = svg.querySelector('style')
         layerSvg.querySelector('defs').insertAdjacentElement 'afterbegin', style.cloneNode(true)
+
 
     ###
     # End of inner html
