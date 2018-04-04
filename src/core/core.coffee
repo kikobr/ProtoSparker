@@ -18,7 +18,6 @@ exports.ff = ff = require('./find').ff
 merge = require 'lodash/merge'
 
 exports.parse = parse = (string) ->
-
 	# if actions are divided with spaces, ignore spaces "action1:target; action2:target;"
 	string = string.replace(/;_/gi, ';')
 
@@ -32,6 +31,7 @@ exports.parse = parse = (string) ->
 
 	acts = string.split ';'
 	acts.filter (action) ->
+		if not action then return false
 		matches = action.match regexAction
 		action = matches[1]
 		target = matches[2]
@@ -53,7 +53,6 @@ exports.parse = parse = (string) ->
 			target: target,
 			options: options
 		}
-
 	return actions
 
 class exports.ProtoSparker
@@ -192,12 +191,14 @@ class exports.ProtoSparker
 				@actions.forEach (action) =>
 					if layerAction.match action.selector
 						layerFns.push action.fn
-			layer.onClick () =>
+
+			layer.on 'click', () =>
 				layerFns.forEach (fn) =>
 					fn.call this, layer
 
 			layerName = @getLayerName layer
 			actions = parse(layerName)
+
 			overlayIndex = actions.findIndex (i) -> i.action == "overlay"
 			if overlayIndex >= 0
 				# hide overlay layers when prototype boots up

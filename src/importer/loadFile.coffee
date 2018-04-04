@@ -1,7 +1,7 @@
 {getViewBox, getRootG} = require './utils'
 
 module.exports = (file, index) ->
-    console.log("loading #{file}")
+    # console.log("loading #{file}")
 
     xhr = new XMLHttpRequest()
     xhr.open("GET", file, false)

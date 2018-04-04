@@ -3,7 +3,7 @@
 module.exports = traverse = (node, parent, parentLayer) ->
 
     # ignoring mask
-    if node.nodeName == 'mask' then return false
+    if node.nodeName == 'mask' or node.nodeName == 'clipPath' then return false
 
     # setting active classes to hidden layers so that we can calculate getBoundingClientRect() correctly
     if node.parentNode and node.parentNode.nodeName == 'svg'
@@ -22,6 +22,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
     name = if node.getAttribute 'data-name' then node.getAttribute 'data-name' else node.id
     skipChildren = false
     computedStyle = getComputedStyle node
+    isFirefox = if navigator.userAgent.indexOf("Firefox") > 0 then true else false
     # qt = decodeMatrix node
 
     # get default layer params
@@ -76,30 +77,43 @@ module.exports = traverse = (node, parent, parentLayer) ->
     ###
     # Extra layer info
     ###
-
+    
     # some clip-paths are applied as classes
-    if node.hasAttribute('clip-path') or (computedStyle.clipPath and computedStyle.clipPath != 'none')
+    if not isFirefox and (node.hasAttribute('clip-path') or (computedStyle.clipPath and computedStyle.clipPath != 'none'))
+
         url = node.getAttribute('clip-path') or computedStyle.clipPath
         # removes "" and ''
         url = url.replace('url("', 'url(').replace('url(\'', 'url(')
             .replace(/\"\)$/, ')').replace(/\'\)$/, ')')
-
         clipSelector = url.replace(/(^url\((.+)\)$)/, '$2')
+        # apply the id selector if the url() didn't contain it before
+        if clipSelector.substring(0,1) != '#' then clipSelector = "\##{clipSelector}"
+
         clipPath = svg.querySelector clipSelector
+        clipPathInner = clipPath.querySelector(':scope > *') # path or rect usually
+
         clipPathBBox = clipPath.getBBox()
         clipPathBounds = clipPath.getBoundingClientRect()
 
+        # if there's a path inside clipPath, consider that to calculate position,
+        # since in webkit there's some bugs with getBBox on hidden elements
+        if clipPathInner
+            clipPathBBox = clipPathInner.getBBox()
+            clipPathBounds = clipPathInner.getBoundingClientRect()
+
         layerParams.width = Math.ceil clipPathBBox.width
         layerParams.height = Math.ceil clipPathBBox.height
+
         # bug? some layers come with a wrong getBoundingClientRect(), like x: -2000.
         # trying to simplify with 0.
-        # layerParams.x = clipPathBounds.x
-        # layerParams.y = clipPathBounds.y
-        # if parentLayer
-        #     layerParams.x -= parentLayer.screenFrame.x
-        #     layerParams.y -= parentLayer.screenFrame.y
-        layerParams.x = 0
-        layerParams.y = 0
+        layerParams.x = clipPathBounds.x
+        layerParams.y = clipPathBounds.y
+        if parentLayer
+            layerParams.x -= parentLayer.screenFrame.x
+            layerParams.y -= parentLayer.screenFrame.y
+
+        # layerParams.x = 0
+        # layerParams.y = 0
         layerParams.clip = true
 
         if clipPath.children.length == 1 and node.children[0].nodeName == 'path'
@@ -108,7 +122,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
     if node.hasAttribute 'opacity' then layerParams.opacity = parseFloat node.getAttribute('opacity')
 
-    if node.closest('[mask]') and node.nodeName != 'g'
+    if not isFirefox and node.closest('[mask]') and node.nodeName != 'g'
         ancestor = node.closest '[mask]'
         maskSelector = ancestor.getAttribute('mask').replace(/(^url\()(.+)(\)$)/, '$2')
         mask = svg.querySelector maskSelector
@@ -116,7 +130,9 @@ module.exports = traverse = (node, parent, parentLayer) ->
             if child.nodeName == 'use'
                 defs = getUseDefs child
                 layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def) for def in defs
-                child.setAttribute 'transform', "translate(#{-child.getBBox().x} #{-child.getBBox().y})"
+                try
+                    child.setAttribute 'transform', "translate(#{-child.getBBox().x} #{-child.getBBox().y})"
+                catch e then console.log "Error: #{e}"
         # apply mask attribute if node does not already have it
         for child in layerSvg.children
             if child.nodeName == node.nodeName

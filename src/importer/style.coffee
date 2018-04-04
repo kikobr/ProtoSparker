@@ -9,6 +9,9 @@ module.exports = """
         position: relative;
         z-index: 999;
     }
+    #svgContainer.hidden {
+        display: none;
+    }
     #svgContainer [data-import-id] {
         position: absolute;
         top: 0;
