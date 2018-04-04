@@ -273,7 +273,7 @@ var PS = (function (exports) {
 	    // layerParams.x = 0
 	    // layerParams.y = 0
 	    layerParams.clip = true;
-	    if (clipPath.children.length === 1 && node.children[0].nodeName === 'path') {
+	    if (clipPath.children.length === 1 && node.children[0] && node.children[0].nodeName === 'path') {
 	      path = node.children[0];
 	      layerParams.backgroundColor = path.getAttribute('fill');
 	    }

@@ -116,7 +116,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
         # layerParams.y = 0
         layerParams.clip = true
 
-        if clipPath.children.length == 1 and node.children[0].nodeName == 'path'
+        if clipPath.children.length == 1 and node.children[0] and node.children[0].nodeName == 'path'
             path = node.children[0]
             layerParams.backgroundColor = path.getAttribute 'fill'
 
