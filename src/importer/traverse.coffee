@@ -33,8 +33,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
         style: {}
         clip: false
         # backgroundColor: 'rgba(0,0,0,0.1)'
-        x: Math.floor nodeBounds.x
-        y: Math.floor nodeBounds.y
+        x: Math.floor (nodeBounds.x or nodeBounds.left)
+        y: Math.floor (nodeBounds.y or nodeBounds.top)
         width: Math.floor nodeBBox.width
         height: Math.floor nodeBBox.height
     # calculates relative position from parent's absolute position
@@ -77,7 +77,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
     ###
     # Extra layer info
     ###
-    
+
     # some clip-paths are applied as classes
     if not isFirefox and (node.hasAttribute('clip-path') or (computedStyle.clipPath and computedStyle.clipPath != 'none'))
 
@@ -106,8 +106,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
         # bug? some layers come with a wrong getBoundingClientRect(), like x: -2000.
         # trying to simplify with 0.
-        layerParams.x = clipPathBounds.x
-        layerParams.y = clipPathBounds.y
+        layerParams.x = clipPathBounds.x or clipPathBounds.left
+        layerParams.y = clipPathBounds.y or clipPathBounds.top
         if parentLayer
             layerParams.x -= parentLayer.screenFrame.x
             layerParams.y -= parentLayer.screenFrame.y
