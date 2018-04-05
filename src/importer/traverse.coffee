@@ -33,10 +33,10 @@ module.exports = traverse = (node, parent, parentLayer) ->
         style: {}
         clip: false
         # backgroundColor: 'rgba(0,0,0,0.1)'
-        x: Math.floor (nodeBounds.x or nodeBounds.left)
-        y: Math.floor (nodeBounds.y or nodeBounds.top)
-        width: Math.floor nodeBBox.width
-        height: Math.floor nodeBBox.height
+        x: (nodeBounds.x or nodeBounds.left)
+        y: (nodeBounds.y or nodeBounds.top)
+        width: nodeBBox.width
+        height: nodeBBox.height
     # calculates relative position from parent's absolute position
     if parentLayer
         layerParams.x -= parentLayer.screenFrame.x
@@ -101,8 +101,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
             clipPathBBox = clipPathInner.getBBox()
             clipPathBounds = clipPathInner.getBoundingClientRect()
 
-        layerParams.width = Math.ceil clipPathBBox.width
-        layerParams.height = Math.ceil clipPathBBox.height
+        layerParams.width = clipPathBBox.width
+        layerParams.height = clipPathBBox.height
 
         # bug? some layers come with a wrong getBoundingClientRect(), like x: -2000.
         # trying to simplify with 0.
@@ -136,15 +136,24 @@ module.exports = traverse = (node, parent, parentLayer) ->
                 childBounds = child.getBoundingClientRect()
                 childOriginalT = child.getAttribute('transform') and child.getAttribute('transform').match(/translate\(([^)]+)\)/)
 
-                childTx = Math.floor (childBounds.x or childBounds.left)
-                childTy = Math.floor (childBounds.y or childBounds.top)
+                childTx = (childBounds.x or childBounds.left)
+                childTy = (childBounds.y or childBounds.top)
+
+                linkedSelector = child.getAttribute "xlink:href"
+                linked = svg.querySelectorAll(linkedSelector)[0]
+
                 if parentLayer
                     childTx -= parentLayer.screenFrame.x
                     childTy -= parentLayer.screenFrame.y
 
+                if nodeBBox
+                    childTx += nodeBBox.x
+                    childTy += nodeBBox.y
+
                 # apply transforms over the clone, not the original svg
                 childClone = maskClone.querySelectorAll('*')[index]
                 childClone.setAttribute 'transform', "translate(#{childTx} #{childTy})"
+
 
         # apply mask attribute if node does not already have it
         for child in layerSvg.children

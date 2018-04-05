@@ -170,7 +170,7 @@ var PS = (function (exports) {
 	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1} = utils);
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var ancestor, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipSelector, computedStyle, createdLayer, def, defs, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, path, ref, ref1, ref2, results, style, svg, url, viewBox;
+	  var ancestor, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipSelector, computedStyle, createdLayer, def, defs, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, path, ref, ref1, ref2, results, style, svg, url, viewBox;
 	  // ignoring mask
 	  if (node.nodeName === 'mask' || node.nodeName === 'clipPath') {
 	    return false;
@@ -205,10 +205,10 @@ var PS = (function (exports) {
 	    style: {},
 	    clip: false,
 	    // backgroundColor: 'rgba(0,0,0,0.1)'
-	    x: Math.floor(nodeBounds.x || nodeBounds.left),
-	    y: Math.floor(nodeBounds.y || nodeBounds.top),
-	    width: Math.floor(nodeBBox.width),
-	    height: Math.floor(nodeBBox.height)
+	    x: nodeBounds.x || nodeBounds.left,
+	    y: nodeBounds.y || nodeBounds.top,
+	    width: nodeBBox.width,
+	    height: nodeBBox.height
 	  };
 	  // calculates relative position from parent's absolute position
 	  if (parentLayer) {
@@ -269,8 +269,8 @@ var PS = (function (exports) {
 	      clipPathBBox = clipPathInner.getBBox();
 	      clipPathBounds = clipPathInner.getBoundingClientRect();
 	    }
-	    layerParams.width = Math.ceil(clipPathBBox.width);
-	    layerParams.height = Math.ceil(clipPathBBox.height);
+	    layerParams.width = clipPathBBox.width;
+	    layerParams.height = clipPathBBox.height;
 	    // bug? some layers come with a wrong getBoundingClientRect(), like x: -2000.
 	    // trying to simplify with 0.
 	    layerParams.x = clipPathBounds.x || clipPathBounds.left;
@@ -307,11 +307,17 @@ var PS = (function (exports) {
 	        childBBox = child.getBBox();
 	        childBounds = child.getBoundingClientRect();
 	        childOriginalT = child.getAttribute('transform') && child.getAttribute('transform').match(/translate\(([^)]+)\)/);
-	        childTx = Math.floor(childBounds.x || childBounds.left);
-	        childTy = Math.floor(childBounds.y || childBounds.top);
+	        childTx = childBounds.x || childBounds.left;
+	        childTy = childBounds.y || childBounds.top;
+	        linkedSelector = child.getAttribute("xlink:href");
+	        linked = svg.querySelectorAll(linkedSelector)[0];
 	        if (parentLayer) {
 	          childTx -= parentLayer.screenFrame.x;
 	          childTy -= parentLayer.screenFrame.y;
+	        }
+	        if (nodeBBox) {
+	          childTx += nodeBBox.x;
+	          childTy += nodeBBox.y;
 	        }
 	        // apply transforms over the clone, not the original svg
 	        childClone = maskClone.querySelectorAll('*')[index];
