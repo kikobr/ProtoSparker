@@ -8,7 +8,7 @@ var PS = (function (exports) {
 		return module = { exports: {} }, fn(module, module.exports), module.exports;
 	}
 
-	var getFillDefs, getRootG, getUseDefs, getViewBox;
+	var getFillDefs, getMatrixTransform, getRootG, getUseDefs, getViewBox;
 
 	var getViewBox_1 = getViewBox = function(node) {
 	  var svg, viewBox;
@@ -77,11 +77,52 @@ var PS = (function (exports) {
 	  return defs;
 	};
 
+	var getMatrixTransform_1 = getMatrixTransform = function(node) {
+	  var matrixArray, qrDecompose, rootBBox, rootBounds, rootG, rootT, viewBox;
+	  viewBox = getViewBox(node);
+	  rootG = getRootG(node);
+	  rootBounds = rootG.getBoundingClientRect();
+	  rootBBox = rootG.getBBox();
+	  rootT = rootG.getAttribute('transform').match(/translate\(([^)]+)\)/);
+	  if (rootT) {
+	    rootT = rootT[1].split(" ").map(function(t) {
+	      return parseFloat(t);
+	    });
+	  }
+	  if (node.hasAttribute('transform') && node.getAttribute('transform').match('matrix')) {
+	    matrixArray = node.getAttribute('transform').replace(/(.*)matrix\((.*)\)(.*)/, '$2').split(' ').map(function(str) {
+	      return parseFloat(str);
+	    });
+	    qrDecompose = function(a) {
+	      var angle, denom, scaleX, scaleY, skewX;
+	      angle = Math.atan2(a[1], a[0]);
+	      denom = Math.pow(a[0], 2) + Math.pow(a[1], 2);
+	      scaleX = Math.sqrt(denom);
+	      scaleY = (a[0] * a[3] - a[2] * a[1]) / scaleX;
+	      skewX = Math.atan2(a[0] * a[2] + a[1] * a[3], denom);
+	      return {
+	        angle: angle / (Math.PI / 180), // this is rotation angle in degrees
+	        scaleX: scaleX, // scaleX factor
+	        scaleY: scaleY, // scaleY factor
+	        skewX: skewX / (Math.PI / 180), // skewX angle degrees
+	        skewY: 0, // skewY angle degrees
+	        translateX: a[4],
+	        translateY: a[5],
+	        rootT: rootT,
+	        rootBBox: rootBBox,
+	        rootBounds: rootBounds
+	      };
+	    };
+	    return qrDecompose(matrixArray);
+	  }
+	};
+
 	var utils = {
 		getViewBox: getViewBox_1,
 		getRootG: getRootG_1,
 		getUseDefs: getUseDefs_1,
-		getFillDefs: getFillDefs_1
+		getFillDefs: getFillDefs_1,
+		getMatrixTransform: getMatrixTransform_1
 	};
 
 	var getRootG$1, getViewBox$1;
@@ -165,12 +206,12 @@ var PS = (function (exports) {
 	  return head.appendChild(style$$1);
 	};
 
-	var getUseDefs$1, getViewBox$2, traverse;
+	var getMatrixTransform$1, getUseDefs$1, getViewBox$2, traverse;
 
-	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1} = utils);
+	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1, getMatrixTransform: getMatrixTransform$1} = utils);
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var ancestor, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipSelector, computedStyle, createdLayer, def, defs, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, path, ref, ref1, ref2, results, style, svg, url, viewBox;
+	  var ancestor, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipSelector, computedStyle, createdLayer, def, defs, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, path, qt, ref, ref1, ref2, results, rotate, rotateX, rotateY, style, svg, tX, tY, url, viewBox;
 	  // ignoring mask
 	  if (node.nodeName === 'mask' || node.nodeName === 'clipPath') {
 	    return false;
@@ -195,8 +236,7 @@ var PS = (function (exports) {
 	  name = node.getAttribute('data-name') ? node.getAttribute('data-name') : node.id;
 	  computedStyle = getComputedStyle(node);
 	  isFirefox = navigator.userAgent.indexOf("Firefox") > 0 ? true : false;
-	  // qt = decodeMatrix node
-
+	  qt = getMatrixTransform$1(node);
 	  // get default layer params
 	  layerParams = {
 	    name: name,
@@ -236,14 +276,42 @@ var PS = (function (exports) {
 	        layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def);
 	      }
 	    }
+	    tX = -nodeBBox.x;
+	    tY = -nodeBBox.y;
+	    rotate = 0;
+	    rotateX = 0;
+	    rotateY = 0;
+	    // if qt and qt.angle
+
+	    //     layerParams.style['border'] = '1px solid green'
+	    //     parentLayer.style['border'] = '1px solid red'
+
+	    //     rotate = qt.angle
+	    //     rotateX = layerParams.width / 2
+	    //     rotateY = layerParams.height / 2
+
+	    // console.log "opa", node
+	    // console.log "qtAbsolute", qtAbsoluteX, qtAbsoluteY
+	    // console.log "layerAbsolute", layerAbsoluteX, layerAbsoluteY
+	    // console.log "nodeBounds", nodeBounds
+	    // console.log "nodeBBox", nodeBBox
+	    // console.log "layerParams", layerParams.x, layerParams.y
+	    // console.log "tX, tY", tX, tY
+	    // console.log qt
+	    // console.log('___')
 	    inner = node.cloneNode();
-	    inner.setAttribute('transform', `translate(${-nodeBBox.x} ${-nodeBBox.y})`);
+	    inner.setAttribute('transform', `translate(${tX} ${tY}) rotate(${rotate}, ${rotateX}, ${rotateY})`);
 	    layerSvg.insertAdjacentElement('afterbegin', inner);
 	  } else if (node.nodeName !== 'g') { // dont clone child nodes because they will be traversed
+	    tX = -nodeBBox.x;
+	    tY = -nodeBBox.y;
+	    rotate = 0;
+	    rotateX = 0;
+	    rotateY = 0;
 	    layerSvg.setAttribute('width', nodeBBox.width);
 	    layerSvg.setAttribute('height', nodeBBox.height);
 	    inner = node.cloneNode(true);
-	    inner.setAttribute('transform', `translate(${-nodeBBox.x} ${-nodeBBox.y})`);
+	    inner.setAttribute('transform', `translate(${tX} ${tY}) rotate(${rotate}, ${rotateX}, ${rotateY})`);
 	    layerSvg.insertAdjacentElement('afterbegin', inner);
 	  }
 	  /*
@@ -309,8 +377,16 @@ var PS = (function (exports) {
 	        childOriginalT = child.getAttribute('transform') && child.getAttribute('transform').match(/translate\(([^)]+)\)/);
 	        childTx = childBounds.x || childBounds.left;
 	        childTy = childBounds.y || childBounds.top;
+	        rotate = 0;
+	        rotateX = 0;
+	        rotateY = 0;
 	        linkedSelector = child.getAttribute("xlink:href");
 	        linked = svg.querySelectorAll(linkedSelector)[0];
+	        // qt = getMatrixTransform child
+	        // if qt
+	        //     rotate = qt.angle
+	        //     rotateX = childBounds.width / 2
+	        //     rotateY = childBounds.height / 2
 	        if (parentLayer) {
 	          childTx -= parentLayer.screenFrame.x;
 	          childTy -= parentLayer.screenFrame.y;
@@ -321,8 +397,11 @@ var PS = (function (exports) {
 	        }
 	        // apply transforms over the clone, not the original svg
 	        childClone = maskClone.querySelectorAll('*')[index];
-	        childClone.setAttribute('transform', `translate(${childTx} ${childTy})`);
+	        childClone.setAttribute('transform', `translate(${childTx} ${childTy}) rotate(${rotate}, ${rotateX}, ${rotateY})`);
 	      }
+	    }
+	    if (node.getAttribute('xlink:href') === '#path19_stroke_2x' && node.getAttribute('transform') === 'matrix(-1 0 0 1 3026 161)') {
+	      console.log(node);
 	    }
 	    ref1 = layerSvg.children;
 	    // apply mask attribute if node does not already have it
@@ -350,12 +429,21 @@ var PS = (function (exports) {
 	  layerParams.image = `data:image/svg+xml;charset=UTF-8,${encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')) // removes line breaks
 }`;
 	  
+	  // for debug purposes
+	  // layerParams.backgroundColor = "rgba(255,255,255,0.05)"
+	  // layerParams.style['border'] = "1px solid rgba(255,255,255,0.1)"
+	  // layerParams.image = ''
+
 	  // creating Framer layer
 	  layer = new Layer(layerParams);
 	  if (parentLayer) {
 	    layer.parent = parentLayer;
 	  }
 	  createdLayer = layer;
+	  if (node.nodeName === 'use' && qt && qt.angle) {
+	    layer.centerX();
+	    layer.centerY();
+	  }
 	  ref2 = node.children;
 	  // continue traversing
 	  results = [];

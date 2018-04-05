@@ -40,3 +40,38 @@ exports.getFillDefs = getFillDefs = (node) ->
                 useDefs = getUseDefs use
                 if useDefs then defs = defs.concat useDefs # comes cloned
     return defs;
+
+exports.getMatrixTransform = getMatrixTransform = (node) ->
+    viewBox = getViewBox node
+
+    rootG = getRootG node
+    rootBounds = rootG.getBoundingClientRect()
+    rootBBox = rootG.getBBox()
+    rootT = rootG.getAttribute('transform').match(/translate\(([^)]+)\)/)
+    if rootT
+        rootT = rootT[1].split(" ").map (t) -> return parseFloat(t)
+
+    if node.hasAttribute('transform') and node.getAttribute('transform').match('matrix')
+        matrixArray = node.getAttribute('transform')
+                                .replace(/(.*)matrix\((.*)\)(.*)/, '$2')
+                                .split(' ')
+                                .map((str) -> return parseFloat(str) )
+        qrDecompose = (a) ->
+            angle = Math.atan2(a[1], a[0])
+            denom = Math.pow(a[0], 2) + Math.pow(a[1], 2)
+            scaleX = Math.sqrt(denom)
+            scaleY = (a[0] * a[3] - a[2] * a[1]) / scaleX
+            skewX = Math.atan2(a[0] * a[2] + a[1] * a[3], denom)
+            return {
+                angle: angle / (Math.PI / 180),  # this is rotation angle in degrees
+                scaleX: scaleX,                  # scaleX factor
+                scaleY: scaleY,                  # scaleY factor
+                skewX: skewX / (Math.PI / 180),  # skewX angle degrees
+                skewY: 0,                        # skewY angle degrees
+                translateX: a[4] #- viewBox[0],   # translation point  x
+                translateY: a[5] #- viewBox[1]    # translation point  y
+                rootT: rootT
+                rootBBox: rootBBox
+                rootBounds: rootBounds
+            };
+        return qrDecompose matrixArray
