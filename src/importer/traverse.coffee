@@ -8,7 +8,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
     # setting active classes to hidden layers so that we can calculate getBoundingClientRect() correctly
     if node.parentNode and node.parentNode.nodeName == 'svg'
         importId = node.closest('[data-import-id]').getAttribute('data-import-id')
-        document.querySelectorAll("#svgContainer > [data-import-id]").forEach (el) ->
+        document.querySelectorAll("#ps-importer-container > [data-import-id]").forEach (el) ->
             if el.getAttribute 'data-import-id' == importId then el.classList.add 'active'
             else el.classList.remove 'active'
 

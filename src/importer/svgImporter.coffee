@@ -15,7 +15,7 @@ class exports.SvgImporter
         @loading = true
         @setupContainer()
         @loadFile file, index for file, index in @files
-        svgContainer.classList.add 'hidden'
+        @svgContainer.classList.add 'hidden'
 
     loadFile: (file, index) ->
         loadFile.call @, file, index

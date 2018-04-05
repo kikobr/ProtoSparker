@@ -131,7 +131,7 @@ var PS = (function (exports) {
 	  return this.svgContainer.insertAdjacentElement('afterbegin', importNode);
 	};
 
-	var style = "html, body {\n    margin: 0;\n    padding: 0;\n}\n#svgContainer {\n    visibility: hidden;\n    display: block;\n    position: relative;\n    z-index: 999;\n}\n#svgContainer.hidden {\n    display: none;\n}\n#svgContainer [data-import-id] {\n    position: absolute;\n    top: 0;\n    left: 0;\n    z-index: 1;\n}\n#svgContainer [data-import-id].active {\n    z-index: 2;\n    position: relative;\n}";
+	var style = "html, body {\n    margin: 0;\n    padding: 0;\n}\n#ps-importer-container {\n    visibility: hidden;\n    display: block;\n    position: relative;\n    z-index: 999;\n}\n#ps-importer-container.hidden {\n    display: none;\n}\n#ps-importer-container [data-import-id] {\n    position: absolute;\n    top: 0;\n    left: 0;\n    z-index: 1;\n}\n#ps-importer-container [data-import-id].active {\n    z-index: 2;\n    position: relative;\n}";
 
 	var svgContainerStyle;
 
@@ -141,17 +141,26 @@ var PS = (function (exports) {
 	  var css, head, style$$1;
 	  // create a container for the svgs
 	  this.svgContainer = document.createElement('div');
-	  this.svgContainer.id = 'svgContainer';
+	  this.svgContainer.id = 'ps-importer-container';
+	  // if this div already exist, remove it to append the updated one
+	  // Framer Studio sometimes reload the script but keep the html intact
+	  if (document.querySelector('#ps-importer-container')) {
+	    document.body.removeChild(document.querySelector('#ps-importer-container'));
+	  }
 	  document.body.insertAdjacentElement('afterbegin', this.svgContainer);
 	  // create style and classes for the svgContainer
 	  css = svgContainerStyle;
 	  head = document.head || document.getElementsByTagName('head')[0];
 	  style$$1 = document.createElement('style');
+	  style$$1.setAttribute('data-ps-importer', '');
 	  style$$1.type = 'text/css';
 	  if (style$$1.styleSheet) {
 	    style$$1.styleSheet.cssText = css;
 	  } else {
 	    style$$1.appendChild(document.createTextNode(css));
+	  }
+	  if (head.querySelector('[data-ps-importer]')) {
+	    head.removeChild(head.querySelector('[data-ps-importer]'));
 	  }
 	  return head.appendChild(style$$1);
 	};
@@ -169,7 +178,7 @@ var PS = (function (exports) {
 	  // setting active classes to hidden layers so that we can calculate getBoundingClientRect() correctly
 	  if (node.parentNode && node.parentNode.nodeName === 'svg') {
 	    importId = node.closest('[data-import-id]').getAttribute('data-import-id');
-	    document.querySelectorAll("#svgContainer > [data-import-id]").forEach(function(el) {
+	    document.querySelectorAll("#ps-importer-container > [data-import-id]").forEach(function(el) {
 	      if (el.getAttribute('data-import-id' === importId)) {
 	        return el.classList.add('active');
 	      } else {
@@ -381,7 +390,7 @@ var PS = (function (exports) {
 	        file = ref[index];
 	        this.loadFile(file, index);
 	      }
-	      svgContainer.classList.add('hidden');
+	      this.svgContainer.classList.add('hidden');
 	    }
 
 	    loadFile(file, index) {
