@@ -181,23 +181,27 @@ module.exports = traverse = (node, parent, parentLayer) ->
             useBBox = use.getBBox()
 
         for child, index in mask.querySelectorAll('*')
-            if child.nodeName == 'use'
+            if child.nodeName == 'use' or child.nodeName == 'rect'
                 defs = getUseDefs child
                 layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def) for def in defs
                 childBBox = child.getBBox()
                 childBounds = child.getBoundingClientRect()
                 childOriginalT = child.getAttribute('transform') and child.getAttribute('transform').match(/translate\(([^)]+)\)/)
+                linkedSelector = child.getAttribute "xlink:href"
+                linked = svg.querySelectorAll(linkedSelector)[0]
 
                 childTx = (childBounds.x or childBounds.left)
                 childTy = (childBounds.y or childBounds.top)
                 [rotate, rotateX, rotateY] = [0,0,0]
 
-                linkedSelector = child.getAttribute "xlink:href"
-                linked = svg.querySelectorAll(linkedSelector)[0]
-
                 if parentLayer
                     childTx -= parentLayer.screenFrame.x
                     childTy -= parentLayer.screenFrame.y
+
+                if linked
+                    linkedBBox = linked.getBBox()
+                    childTx -= linkedBBox.x
+                    childTy -= linkedBBox.y
 
                 if node.nodeName == 'g' and node.children.length == 1 and node.children[0].nodeName == 'use' then ''
                 else if nodeBBox
@@ -220,13 +224,17 @@ module.exports = traverse = (node, parent, parentLayer) ->
     # style only one time, parse it and reuse it everytime to get the right string?
     if node.hasAttribute 'class'
         style = svg.querySelector('style')
-        layerSvg.querySelector('defs').insertAdjacentElement 'afterbegin', style.cloneNode(true)
+        if style then layerSvg.querySelector('defs').insertAdjacentElement 'afterbegin', style.cloneNode(true)
 
     # apply transformations that had matrix transforms
     if qt
         if qt.scaleX != 1 or qt.scaleY != 1
             layerParams.scaleX = qt.scaleX
             layerParams.scaleY = qt.scaleY
+
+    # if name == 'sol'
+    #     console.log node
+    #     console.log layerSvg.outerHTML
 
     ###
     # End of inner html

@@ -217,7 +217,7 @@ var PS = (function (exports) {
 	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1, getMatrixTransform: getMatrixTransform$1} = utils);
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var ancestor, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipSelector, computedStyle, createdLayer, def, defs, filter, filterClone, filterSelector, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, len5, len6, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, path, qt, ref, ref1, ref2, ref3, results, rotate, rotateX, rotateY, style, svg, tX, tY, url, use, useBBox, viewBox;
+	  var ancestor, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipSelector, computedStyle, createdLayer, def, defs, filter, filterClone, filterSelector, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, len5, len6, linked, linkedBBox, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, path, qt, ref, ref1, ref2, ref3, results, rotate, rotateX, rotateY, style, svg, tX, tY, url, use, useBBox, viewBox;
 	  // ignoring
 	  if (node.nodeName === 'mask' || node.nodeName === 'clipPath' || node.nodeName === 'use' && node.parentNode.children.length === 1) {
 	    return false;
@@ -401,7 +401,7 @@ var PS = (function (exports) {
 	    ref1 = mask.querySelectorAll('*');
 	    for (index = m = 0, len3 = ref1.length; m < len3; index = ++m) {
 	      child = ref1[index];
-	      if (child.nodeName === 'use') {
+	      if (child.nodeName === 'use' || child.nodeName === 'rect') {
 	        defs = getUseDefs$1(child);
 	        for (n = 0, len4 = defs.length; n < len4; n++) {
 	          def = defs[n];
@@ -410,14 +410,19 @@ var PS = (function (exports) {
 	        childBBox = child.getBBox();
 	        childBounds = child.getBoundingClientRect();
 	        childOriginalT = child.getAttribute('transform') && child.getAttribute('transform').match(/translate\(([^)]+)\)/);
+	        linkedSelector = child.getAttribute("xlink:href");
+	        linked = svg.querySelectorAll(linkedSelector)[0];
 	        childTx = childBounds.x || childBounds.left;
 	        childTy = childBounds.y || childBounds.top;
 	        [rotate, rotateX, rotateY] = [0, 0, 0];
-	        linkedSelector = child.getAttribute("xlink:href");
-	        linked = svg.querySelectorAll(linkedSelector)[0];
 	        if (parentLayer) {
 	          childTx -= parentLayer.screenFrame.x;
 	          childTy -= parentLayer.screenFrame.y;
+	        }
+	        if (linked) {
+	          linkedBBox = linked.getBBox();
+	          childTx -= linkedBBox.x;
+	          childTy -= linkedBBox.y;
 	        }
 	        if (node.nodeName === 'g' && node.children.length === 1 && node.children[0].nodeName === 'use') {
 	        } else if (nodeBBox) {
@@ -446,7 +451,9 @@ var PS = (function (exports) {
 	  // style only one time, parse it and reuse it everytime to get the right string?
 	  if (node.hasAttribute('class')) {
 	    style = svg.querySelector('style');
-	    layerSvg.querySelector('defs').insertAdjacentElement('afterbegin', style.cloneNode(true));
+	    if (style) {
+	      layerSvg.querySelector('defs').insertAdjacentElement('afterbegin', style.cloneNode(true));
+	    }
 	  }
 	  // apply transformations that had matrix transforms
 	  if (qt) {
@@ -455,6 +462,9 @@ var PS = (function (exports) {
 	      layerParams.scaleY = qt.scaleY;
 	    }
 	  }
+	  // if name == 'sol'
+	  //     console.log node
+	  //     console.log layerSvg.outerHTML
 	  /*
 	   * End of inner html
 	   */
