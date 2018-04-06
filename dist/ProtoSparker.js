@@ -217,7 +217,7 @@ var PS = (function (exports) {
 	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1, getMatrixTransform: getMatrixTransform$1} = utils);
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var ancestor, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipSelector, computedStyle, createdLayer, def, defs, filter, filterClone, filterSelector, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, len5, len6, linked, linkedBBox, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, path, qt, ref, ref1, ref2, ref3, results, rotate, rotateX, rotateY, style, svg, tX, tY, url, use, useBBox, viewBox;
+	  var ancestor, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, def, defs, filter, filterClone, filterSelector, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, len5, len6, linked, linkedBBox, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, path, qt, ref, ref1, ref2, ref3, results, rotate, rotateX, rotateY, style, svg, tX, tY, url, use, useBBox, viewBox;
 	  // ignoring
 	  if (node.nodeName === 'mask' || node.nodeName === 'clipPath' || node.nodeName === 'use' && node.parentNode.children.length === 1) {
 	    return false;
@@ -272,7 +272,7 @@ var PS = (function (exports) {
 	   * Generating inner html and applying transforms so that the svg
 	   * is rendered at 0,0 position of the layer
 	   */
-	  if (node.nodeName === 'g' && node.children.length === 1 && node.children[0].nodeName === 'use') {
+	  if (node.nodeName === 'g' && node.children.length === 1 && node.children[0].nodeName !== 'g') {
 	    use = node.children[0];
 	    layerSvg.setAttribute('width', nodeBBox.width);
 	    layerSvg.setAttribute('height', nodeBBox.height);
@@ -345,23 +345,30 @@ var PS = (function (exports) {
 	    }
 	    clipPath = svg.querySelector(clipSelector);
 	    clipPathInner = clipPath.querySelector(':scope > *'); // path or rect usually
+	    clipPathInnerBBox = null;
 	    clipPathBBox = clipPath.getBBox();
 	    clipPathBounds = clipPath.getBoundingClientRect();
 	    // if there's a path inside clipPath, consider that to calculate position,
 	    // since in webkit there's some bugs with getBBox on hidden elements
 	    if (clipPathInner) {
-	      clipPathBBox = clipPathInner.getBBox();
+	      clipPathInnerBBox = clipPathInner.getBBox();
+	      clipPathBBox = clipPathInnerBBox;
 	      clipPathBounds = clipPathInner.getBoundingClientRect();
 	    }
 	    layerParams.width = clipPathBBox.width;
 	    layerParams.height = clipPathBBox.height;
 	    // bug? some layers come with a wrong getBoundingClientRect(), like x: -2000.
 	    // trying to simplify with 0.
-	    layerParams.x = clipPathBounds.x || clipPathBounds.left;
-	    layerParams.y = clipPathBounds.y || clipPathBounds.top;
-	    if (parentLayer) {
-	      layerParams.x -= parentLayer.screenFrame.x;
-	      layerParams.y -= parentLayer.screenFrame.y;
+	    if (clipPathInner && clipPathInnerBBox && clipPathInnerBBox.x === 0 && clipPathInnerBBox.y === 0) {
+	      layerParams.x = 0;
+	      layerParams.y = 0;
+	    } else {
+	      layerParams.x = clipPathBounds.x || clipPathBounds.left;
+	      layerParams.y = clipPathBounds.y || clipPathBounds.top;
+	      if (parentLayer) {
+	        layerParams.x -= parentLayer.screenFrame.x;
+	        layerParams.y -= parentLayer.screenFrame.y;
+	      }
 	    }
 	    // layerParams.x = 0
 	    // layerParams.y = 0
@@ -462,9 +469,10 @@ var PS = (function (exports) {
 	      layerParams.scaleY = qt.scaleY;
 	    }
 	  }
-	  // if name == 'sol'
-	  //     console.log node
-	  //     console.log layerSvg.outerHTML
+	  if (name === 'Group 226') {
+	    console.log(node);
+	    console.log(layerSvg.outerHTML.replace(/\n|\t/g, ' '));
+	  }
 	  /*
 	   * End of inner html
 	   */

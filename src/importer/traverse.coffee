@@ -58,7 +58,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
     # is rendered at 0,0 position of the layer
     ###
 
-    if node.nodeName == 'g' and node.children.length == 1 and node.children[0].nodeName == 'use'
+    if node.nodeName == 'g' and node.children.length == 1 and node.children[0].nodeName != 'g'
         use = node.children[0]
         layerSvg.setAttribute 'width', nodeBBox.width
         layerSvg.setAttribute 'height', nodeBBox.height
@@ -128,6 +128,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
         clipPath = svg.querySelector clipSelector
         clipPathInner = clipPath.querySelector(':scope > *') # path or rect usually
+        clipPathInnerBBox = null
 
         clipPathBBox = clipPath.getBBox()
         clipPathBounds = clipPath.getBoundingClientRect()
@@ -135,7 +136,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
         # if there's a path inside clipPath, consider that to calculate position,
         # since in webkit there's some bugs with getBBox on hidden elements
         if clipPathInner
-            clipPathBBox = clipPathInner.getBBox()
+            clipPathInnerBBox = clipPathInner.getBBox()
+            clipPathBBox = clipPathInnerBBox
             clipPathBounds = clipPathInner.getBoundingClientRect()
 
         layerParams.width = clipPathBBox.width
@@ -143,11 +145,15 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
         # bug? some layers come with a wrong getBoundingClientRect(), like x: -2000.
         # trying to simplify with 0.
-        layerParams.x = clipPathBounds.x or clipPathBounds.left
-        layerParams.y = clipPathBounds.y or clipPathBounds.top
-        if parentLayer
-            layerParams.x -= parentLayer.screenFrame.x
-            layerParams.y -= parentLayer.screenFrame.y
+        if clipPathInner and clipPathInnerBBox and clipPathInnerBBox.x == 0 and clipPathInnerBBox.y == 0
+            layerParams.x = 0
+            layerParams.y = 0
+        else
+            layerParams.x = clipPathBounds.x or clipPathBounds.left
+            layerParams.y = clipPathBounds.y or clipPathBounds.top
+            if parentLayer
+                layerParams.x -= parentLayer.screenFrame.x
+                layerParams.y -= parentLayer.screenFrame.y
 
         # layerParams.x = 0
         # layerParams.y = 0
@@ -232,9 +238,9 @@ module.exports = traverse = (node, parent, parentLayer) ->
             layerParams.scaleX = qt.scaleX
             layerParams.scaleY = qt.scaleY
 
-    # if name == 'sol'
-    #     console.log node
-    #     console.log layerSvg.outerHTML
+    if name == 'Group 226'
+        console.log node
+        console.log layerSvg.outerHTML.replace(/\n|\t/g, ' ')
 
     ###
     # End of inner html
