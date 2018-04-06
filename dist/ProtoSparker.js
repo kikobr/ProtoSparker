@@ -77,20 +77,20 @@ var PS = (function (exports) {
 	  return defs;
 	};
 
-	var getMatrixTransform_1 = getMatrixTransform = function(node) {
+	var getMatrixTransform_1 = getMatrixTransform = function(node, log = false) {
 	  var matrixArray, qrDecompose, rootBBox, rootBounds, rootG, rootT, viewBox;
 	  viewBox = getViewBox(node);
 	  rootG = getRootG(node);
 	  rootBounds = rootG.getBoundingClientRect();
 	  rootBBox = rootG.getBBox();
-	  rootT = rootG.getAttribute('transform').match(/translate\(([^)]+)\)/);
+	  rootT = rootG.getAttribute('transform') ? rootG.getAttribute('transform').match(/translate\(([^)]+)\)/) : false;
 	  if (rootT) {
 	    rootT = rootT[1].split(" ").map(function(t) {
 	      return parseFloat(t);
 	    });
 	  }
 	  if (node.hasAttribute('transform') && node.getAttribute('transform').match('matrix')) {
-	    matrixArray = node.getAttribute('transform').replace(/(.*)matrix\((.*)\)(.*)/, '$2').split(' ').map(function(str) {
+	    matrixArray = node.getAttribute('transform').replace(/(.*)matrix\((.*)\)(.*)/, '$2').replace(/\,\ /g, ' ').replace(/\,/g, ' ').split(' ').map(function(str) { // matrix(0, 0, 0, 0, 0, 0) // matrix(0,0,0,0,0,0) // matrix(0 0 0 0 0 0)
 	      return parseFloat(str);
 	    });
 	    qrDecompose = function(a) {
@@ -113,7 +113,13 @@ var PS = (function (exports) {
 	        rootBounds: rootBounds
 	      };
 	    };
+	    if (log) {
+	      console.log('matrix', matrixArray);
+	      console.log(node.getAttribute('transform'));
+	    }
 	    return qrDecompose(matrixArray);
+	  } else {
+	    return false;
 	  }
 	};
 
@@ -278,36 +284,14 @@ var PS = (function (exports) {
 	    }
 	    tX = -nodeBBox.x;
 	    tY = -nodeBBox.y;
-	    rotate = 0;
-	    rotateX = 0;
-	    rotateY = 0;
-	    // if qt and qt.angle
-
-	    //     layerParams.style['border'] = '1px solid green'
-	    //     parentLayer.style['border'] = '1px solid red'
-
-	    //     rotate = qt.angle
-	    //     rotateX = layerParams.width / 2
-	    //     rotateY = layerParams.height / 2
-
-	    // console.log "opa", node
-	    // console.log "qtAbsolute", qtAbsoluteX, qtAbsoluteY
-	    // console.log "layerAbsolute", layerAbsoluteX, layerAbsoluteY
-	    // console.log "nodeBounds", nodeBounds
-	    // console.log "nodeBBox", nodeBBox
-	    // console.log "layerParams", layerParams.x, layerParams.y
-	    // console.log "tX, tY", tX, tY
-	    // console.log qt
-	    // console.log('___')
+	    [rotate, rotateX, rotateY] = [0, 0, 0];
 	    inner = node.cloneNode();
 	    inner.setAttribute('transform', `translate(${tX} ${tY}) rotate(${rotate}, ${rotateX}, ${rotateY})`);
 	    layerSvg.insertAdjacentElement('afterbegin', inner);
 	  } else if (node.nodeName !== 'g') { // dont clone child nodes because they will be traversed
 	    tX = -nodeBBox.x;
 	    tY = -nodeBBox.y;
-	    rotate = 0;
-	    rotateX = 0;
-	    rotateY = 0;
+	    [rotate, rotateX, rotateY] = [0, 0, 0];
 	    layerSvg.setAttribute('width', nodeBBox.width);
 	    layerSvg.setAttribute('height', nodeBBox.height);
 	    inner = node.cloneNode(true);
@@ -377,9 +361,7 @@ var PS = (function (exports) {
 	        childOriginalT = child.getAttribute('transform') && child.getAttribute('transform').match(/translate\(([^)]+)\)/);
 	        childTx = childBounds.x || childBounds.left;
 	        childTy = childBounds.y || childBounds.top;
-	        rotate = 0;
-	        rotateX = 0;
-	        rotateY = 0;
+	        [rotate, rotateX, rotateY] = [0, 0, 0];
 	        linkedSelector = child.getAttribute("xlink:href");
 	        linked = svg.querySelectorAll(linkedSelector)[0];
 	        // qt = getMatrixTransform child
@@ -400,9 +382,6 @@ var PS = (function (exports) {
 	        childClone.setAttribute('transform', `translate(${childTx} ${childTy}) rotate(${rotate}, ${rotateX}, ${rotateY})`);
 	      }
 	    }
-	    if (node.getAttribute('xlink:href') === '#path19_stroke_2x' && node.getAttribute('transform') === 'matrix(-1 0 0 1 3026 161)') {
-	      console.log(node);
-	    }
 	    ref1 = layerSvg.children;
 	    // apply mask attribute if node does not already have it
 	    for (m = 0, len3 = ref1.length; m < len3; m++) {
@@ -421,6 +400,16 @@ var PS = (function (exports) {
 	  if (node.hasAttribute('class')) {
 	    style = svg.querySelector('style');
 	    layerSvg.querySelector('defs').insertAdjacentElement('afterbegin', style.cloneNode(true));
+	  }
+	  // apply transformations that had matrix transforms
+	  if (qt) {
+	    if (qt.scaleX !== 1 || qt.scaleY !== 1) {
+	      layerParams.scaleX = qt.scaleX;
+	      layerParams.scaleY = qt.scaleY;
+	    }
+	    if (qt.angle) {
+	      layerParams.rotation = qt.angle;
+	    }
 	  }
 	  /*
 	   * End of inner html

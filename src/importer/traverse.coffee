@@ -37,6 +37,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
         y: (nodeBounds.y or nodeBounds.top)
         width: nodeBBox.width
         height: nodeBBox.height
+
     # calculates relative position from parent's absolute position
     if parentLayer
         layerParams.x -= parentLayer.screenFrame.x
@@ -64,28 +65,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
         if defs then layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def) for def in defs
         tX = -nodeBBox.x
         tY = -nodeBBox.y
-        rotate = 0
-        rotateX = 0
-        rotateY = 0
-
-        # if qt and qt.angle
-        #
-        #     layerParams.style['border'] = '1px solid green'
-        #     parentLayer.style['border'] = '1px solid red'
-        #
-        #     rotate = qt.angle
-        #     rotateX = layerParams.width / 2
-        #     rotateY = layerParams.height / 2
-
-            # console.log "opa", node
-            # console.log "qtAbsolute", qtAbsoluteX, qtAbsoluteY
-            # console.log "layerAbsolute", layerAbsoluteX, layerAbsoluteY
-            # console.log "nodeBounds", nodeBounds
-            # console.log "nodeBBox", nodeBBox
-            # console.log "layerParams", layerParams.x, layerParams.y
-            # console.log "tX, tY", tX, tY
-            # console.log qt
-            # console.log('___')
+        [rotate, rotateX, rotateY] = [0,0,0]
 
         inner = node.cloneNode()
         inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY})"
@@ -93,9 +73,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
     else if node.nodeName != 'g' # dont clone child nodes because they will be traversed
         tX = -nodeBBox.x
         tY = -nodeBBox.y
-        rotate = 0
-        rotateX = 0
-        rotateY = 0
+        [rotate, rotateX, rotateY] = [0,0,0]
 
         layerSvg.setAttribute 'width', nodeBBox.width
         layerSvg.setAttribute 'height', nodeBBox.height
@@ -168,9 +146,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
                 childTx = (childBounds.x or childBounds.left)
                 childTy = (childBounds.y or childBounds.top)
-                rotate = 0
-                rotateX = 0
-                rotateY = 0
+                [rotate, rotateX, rotateY] = [0,0,0]
 
                 linkedSelector = child.getAttribute "xlink:href"
                 linked = svg.querySelectorAll(linkedSelector)[0]
@@ -193,10 +169,6 @@ module.exports = traverse = (node, parent, parentLayer) ->
                 childClone = maskClone.querySelectorAll('*')[index]
                 childClone.setAttribute 'transform', "translate(#{childTx} #{childTy}) rotate(#{rotate}, #{rotateX}, #{rotateY})"
 
-        if node.getAttribute('xlink:href') == '#path19_stroke_2x' and node.getAttribute('transform') ==  'matrix(-1 0 0 1 3026 161)'
-            console.log node
-
-
         # apply mask attribute if node does not already have it
         for child in layerSvg.children
             if child.nodeName == node.nodeName
@@ -210,6 +182,14 @@ module.exports = traverse = (node, parent, parentLayer) ->
         style = svg.querySelector('style')
         layerSvg.querySelector('defs').insertAdjacentElement 'afterbegin', style.cloneNode(true)
 
+    # apply transformations that had matrix transforms
+    if qt
+        if qt.scaleX != 1 or qt.scaleY != 1
+            layerParams.scaleX = qt.scaleX
+            layerParams.scaleY = qt.scaleY
+
+        if qt.angle
+            layerParams.rotation = qt.angle
 
     ###
     # End of inner html

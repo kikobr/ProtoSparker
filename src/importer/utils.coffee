@@ -41,20 +41,21 @@ exports.getFillDefs = getFillDefs = (node) ->
                 if useDefs then defs = defs.concat useDefs # comes cloned
     return defs;
 
-exports.getMatrixTransform = getMatrixTransform = (node) ->
+exports.getMatrixTransform = getMatrixTransform = (node, log=false) ->
     viewBox = getViewBox node
 
     rootG = getRootG node
     rootBounds = rootG.getBoundingClientRect()
     rootBBox = rootG.getBBox()
-    rootT = rootG.getAttribute('transform').match(/translate\(([^)]+)\)/)
+    rootT = if rootG.getAttribute('transform') then rootG.getAttribute('transform').match(/translate\(([^)]+)\)/) else false
     if rootT
         rootT = rootT[1].split(" ").map (t) -> return parseFloat(t)
-
     if node.hasAttribute('transform') and node.getAttribute('transform').match('matrix')
         matrixArray = node.getAttribute('transform')
                                 .replace(/(.*)matrix\((.*)\)(.*)/, '$2')
-                                .split(' ')
+                                .replace(/\,\ /g, ' ') # matrix(0, 0, 0, 0, 0, 0)
+                                .replace(/\,/g, ' ') # matrix(0,0,0,0,0,0)
+                                .split(' ') # matrix(0 0 0 0 0 0)
                                 .map((str) -> return parseFloat(str) )
         qrDecompose = (a) ->
             angle = Math.atan2(a[1], a[0])
@@ -74,4 +75,8 @@ exports.getMatrixTransform = getMatrixTransform = (node) ->
                 rootBBox: rootBBox
                 rootBounds: rootBounds
             };
+        if log
+            console.log 'matrix', matrixArray
+            console.log node.getAttribute 'transform'
         return qrDecompose matrixArray
+    else return false
