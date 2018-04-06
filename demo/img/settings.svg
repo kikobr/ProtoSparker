@@ -60,7 +60,7 @@
 </g>
 <g id="Search">
 <g id="Shape">
-<use xlink:href="#path12_fill" transform="matrix(1 0 0 -1 3738 4166.49)" fill="#FFFFFF"/>
+<use id="lupa" xlink:href="#path12_fill" transform="matrix(1 0 0 -1 3738 4166.49)" fill="#FFFFFF"/>
 </g>
 </g>
 <g id="app bar contents">

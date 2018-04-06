@@ -2,8 +2,10 @@
 
 module.exports = traverse = (node, parent, parentLayer) ->
 
-    # ignoring mask
-    if node.nodeName == 'mask' or node.nodeName == 'clipPath' then return false
+    # ignoring
+    if node.nodeName == 'mask' or
+        node.nodeName == 'clipPath' or
+        node.nodeName == 'use' and node.parentNode.children.length == 1 then return false
 
     # setting active classes to hidden layers so that we can calculate getBoundingClientRect() correctly
     if node.parentNode and node.parentNode.nodeName == 'svg'
@@ -51,12 +53,33 @@ module.exports = traverse = (node, parent, parentLayer) ->
     layerDefs = document.createElement 'defs'
     layerSvg.appendChild layerDefs
 
-
-
     ###
     # Generating inner html and applying transforms so that the svg
     # is rendered at 0,0 position of the layer
     ###
+
+    if node.nodeName == 'g' and node.children.length == 1 and node.children[0].nodeName == 'use'
+        use = node.children[0]
+        layerSvg.setAttribute 'width', nodeBBox.width
+        layerSvg.setAttribute 'height', nodeBBox.height
+        defs = getUseDefs use
+        if defs then layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def) for def in defs
+        useBBox = use.getBBox()
+        tX = -useBBox.x
+        tY = -useBBox.y
+
+        [rotate, rotateX, rotateY] = [0,0,0]
+        qt = getMatrixTransform use
+        if qt and qt.angle
+            rotate = qt.angle
+            rotateX = (useBBox.width / 2) + useBBox.x
+            rotateY = (useBBox.height / 2) + useBBox.y
+            tX += ((nodeBBox.width - useBBox.width) / 2 )
+            tY += ((nodeBBox.height - useBBox.height) / 2 )
+
+        inner = node.cloneNode(true)
+        inner.children[0].setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY})"
+        layerSvg.insertAdjacentElement 'afterbegin', inner
 
     if node.nodeName == 'use'
         layerSvg.setAttribute 'width', nodeBBox.width
@@ -67,10 +90,16 @@ module.exports = traverse = (node, parent, parentLayer) ->
         tY = -nodeBBox.y
         [rotate, rotateX, rotateY] = [0,0,0]
 
+        if qt and qt.angle
+            rotate = qt.angle
+            rotateX = layerParams.width / 2
+            rotateY = layerParams.height / 2
+
         inner = node.cloneNode()
         inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY})"
         layerSvg.insertAdjacentElement 'afterbegin', inner
-    else if node.nodeName != 'g' # dont clone child nodes because they will be traversed
+
+    else if node.nodeName != 'g'
         tX = -nodeBBox.x
         tY = -nodeBBox.y
         [rotate, rotateX, rotateY] = [0,0,0]
@@ -130,11 +159,26 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
     if node.hasAttribute 'opacity' then layerParams.opacity = parseFloat node.getAttribute('opacity')
 
-    if not isFirefox and node.closest('[mask]') and node.nodeName != 'g'
+    if node.hasAttribute 'filter'
+        filterSelector = node.getAttribute('filter').replace(/(^url\()(.+)(\)$)/, '$2')
+        filter = svg.querySelector filterSelector
+        filterClone = filter.cloneNode(true)
+        layerSvg.querySelector('defs').insertAdjacentElement 'beforeend', filterClone
+        # since filter is not working yet, disable it
+        for child in layerSvg.children
+            if child.nodeName == node.nodeName
+                child.removeAttribute 'filter'
+
+    if not isFirefox and node.closest('[mask]')
         ancestor = node.closest '[mask]'
         maskSelector = ancestor.getAttribute('mask').replace(/(^url\()(.+)(\)$)/, '$2')
         mask = svg.querySelector maskSelector
         maskClone = mask.cloneNode true
+
+        useBBox = null
+        if node.nodeName == 'g' and node.children.length == 1 and node.children[0].nodeName == 'use'
+            use = node.children[0]
+            useBBox = use.getBBox()
 
         for child, index in mask.querySelectorAll('*')
             if child.nodeName == 'use'
@@ -151,17 +195,12 @@ module.exports = traverse = (node, parent, parentLayer) ->
                 linkedSelector = child.getAttribute "xlink:href"
                 linked = svg.querySelectorAll(linkedSelector)[0]
 
-                # qt = getMatrixTransform child
-                # if qt
-                #     rotate = qt.angle
-                #     rotateX = childBounds.width / 2
-                #     rotateY = childBounds.height / 2
-
                 if parentLayer
                     childTx -= parentLayer.screenFrame.x
                     childTy -= parentLayer.screenFrame.y
 
-                if nodeBBox
+                if node.nodeName == 'g' and node.children.length == 1 and node.children[0].nodeName == 'use' then ''
+                else if nodeBBox
                     childTx += nodeBBox.x
                     childTy += nodeBBox.y
 
@@ -176,6 +215,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
         # adds mask to layerSvg
         layerSvg.insertAdjacentElement 'afterbegin', maskClone
 
+
     # TODO: print only the css required for the node to render. maybe render svg
     # style only one time, parse it and reuse it everytime to get the right string?
     if node.hasAttribute 'class'
@@ -187,9 +227,6 @@ module.exports = traverse = (node, parent, parentLayer) ->
         if qt.scaleX != 1 or qt.scaleY != 1
             layerParams.scaleX = qt.scaleX
             layerParams.scaleY = qt.scaleY
-
-        if qt.angle
-            layerParams.rotation = qt.angle
 
     ###
     # End of inner html
@@ -207,10 +244,6 @@ module.exports = traverse = (node, parent, parentLayer) ->
     layer = new Layer layerParams
     if parentLayer then layer.parent = parentLayer
     createdLayer = layer
-
-    if node.nodeName == 'use' and qt and qt.angle
-        layer.centerX()
-        layer.centerY()
 
     # continue traversing
     for child, i in node.children
