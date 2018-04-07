@@ -70,20 +70,31 @@ module.exports = traverse = (node, parent, parentLayer) ->
         defs = getUseDefs use
         if defs then layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def) for def in defs
         useBBox = use.getBBox()
+        useBounds = use.getBoundingClientRect()
         tX = -useBBox.x
         tY = -useBBox.y
+        toX = (useBBox.width / 2)
+        toY = (useBBox.height / 2)
 
         [rotate, rotateX, rotateY] = [0,0,0]
+        [scaleX, scaleY] = [1,1]
         qt = getMatrixTransform use
-        if qt and qt.angle
+
+        if qt
             rotate = qt.angle
             rotateX = (useBBox.width / 2) + useBBox.x
             rotateY = (useBBox.height / 2) + useBBox.y
             tX += ((nodeBBox.width - useBBox.width) / 2 )
             tY += ((nodeBBox.height - useBBox.height) / 2 )
+            scaleX = qt.scaleX
+            scaleY = qt.scaleY
+            # compensate origin distortion when useBBox.width differs from userBounds.width (scale + translate together)
+            tX += (useBounds.width - useBBox.width) / 2
+            tY += (useBounds.height - useBBox.height) / 2
 
         inner = node.cloneNode(true)
-        inner.children[0].setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY})"
+        inner.children[0].setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
+        inner.children[0].setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
         layerSvg.insertAdjacentElement 'afterbegin', inner
 
     if node.nodeName == 'use'
@@ -93,28 +104,50 @@ module.exports = traverse = (node, parent, parentLayer) ->
         if defs then layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def) for def in defs
         tX = -nodeBBox.x
         tY = -nodeBBox.y
-        [rotate, rotateX, rotateY] = [0,0,0]
+        toX = (nodeBBox.width / 2)
+        toY = (nodeBBox.height / 2)
 
-        if qt and qt.angle
+        [rotate, rotateX, rotateY] = [0,0,0]
+        [scaleX, scaleY] = [1,1]
+
+        if qt
             rotate = qt.angle
             rotateX = layerParams.width / 2
             rotateY = layerParams.height / 2
+            scaleX = qt.scaleX
+            scaleY = qt.scaleY
+            # compensate origin distortion when nodeBBox.width differs from nodeBounds.width (scale + translate together)
+            tX += (nodeBounds.width - nodeBBox.width) / 2
+            tY += (nodeBounds.height - nodeBBox.height) / 2
 
         inner = node.cloneNode()
-        inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY})"
+        inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
+        inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
         layerSvg.insertAdjacentElement 'afterbegin', inner
 
     else if node.nodeName != 'g'
         tX = -nodeBBox.x
         tY = -nodeBBox.y
         [rotate, rotateX, rotateY] = [0,0,0]
+        [scaleX, scaleY] = [1,1]
+        toX = (nodeBBox.width / 2)
+        toY = (nodeBBox.height / 2)
 
         layerSvg.setAttribute 'width', nodeBBox.width
         layerSvg.setAttribute 'height', nodeBBox.height
 
+        if qt
+            scaleX = qt.scaleX
+            scaleY = qt.scaleY
+            # compensate origin distortion when nodeBBox.width differs from nodeBounds.width (scale + translate together)
+            tX += (nodeBounds.width - nodeBBox.width) / 2
+            tY += (nodeBounds.height - nodeBBox.height) / 2
+
         inner = node.cloneNode(true)
-        inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY})"
+        inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
+        inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
         layerSvg.insertAdjacentElement 'afterbegin', inner
+
 
     ###
     # Extra layer info
@@ -192,7 +225,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
             useBBox = use.getBBox()
 
         for child, index in mask.querySelectorAll('*')
-            if child.nodeName == 'use' or child.nodeName == 'rect'
+            if child.nodeName == 'use' or child.nodeName == 'rect' or child.nodeName == 'path'
                 defs = getUseDefs child
                 layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def) for def in defs
                 childBBox = child.getBBox()
@@ -204,6 +237,11 @@ module.exports = traverse = (node, parent, parentLayer) ->
                 childTx = (childBounds.x or childBounds.left)
                 childTy = (childBounds.y or childBounds.top)
                 [rotate, rotateX, rotateY] = [0,0,0]
+                [scaleX, scaleY] = [1,1]
+
+                if childBBox
+                    childTx -= childBBox.x
+                    childTy -= childBBox.y
 
                 if parentLayer
                     childTx -= parentLayer.screenFrame.x
@@ -214,6 +252,10 @@ module.exports = traverse = (node, parent, parentLayer) ->
                     childTx -= linkedBBox.x
                     childTy -= linkedBBox.y
 
+                # if qt
+                #     childTx -= qt.translateX or 0
+                #     childTy -= qt.translateY or 0
+
                 if node.nodeName == 'g' and node.children.length == 1 and node.children[0].nodeName == 'use' then ''
                 else if nodeBBox
                     childTx += nodeBBox.x
@@ -221,15 +263,21 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
                 # apply transforms over the clone, not the original svg
                 childClone = maskClone.querySelectorAll('*')[index]
-                childClone.setAttribute 'transform', "translate(#{childTx} #{childTy}) rotate(#{rotate}, #{rotateX}, #{rotateY})"
+                childClone.setAttribute 'transform', "translate(#{childTx} #{childTy}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
 
         # apply mask attribute if node does not already have it
         for child in layerSvg.children
             if child.nodeName == node.nodeName
-                if not child.hasAttribute 'mask' then child.setAttribute 'mask', "url(#{maskSelector})"
+                if node.hasAttribute 'transform'
+                    # encapsulate with g if the layer has a transform, so that the mask isnt affected
+                    g = document.createElement 'g'
+                    layerSvg.removeChild child
+                    g.appendChild child
+                    g.setAttribute 'mask', "url(#{maskSelector})"
+                    layerSvg.insertAdjacentElement 'afterbegin', g
+                else if not child.hasAttribute 'mask' then child.setAttribute 'mask', "url(#{maskSelector})"
         # adds mask to layerSvg
         layerSvg.insertAdjacentElement 'afterbegin', maskClone
-
 
     # TODO: print only the css required for the node to render. maybe render svg
     # style only one time, parse it and reuse it everytime to get the right string?
@@ -237,15 +285,17 @@ module.exports = traverse = (node, parent, parentLayer) ->
         style = svg.querySelector('style')
         if style then layerSvg.querySelector('defs').insertAdjacentElement 'afterbegin', style.cloneNode(true)
 
-    # apply transformations that had matrix transforms
-    if qt
-        if qt.scaleX != 1 or qt.scaleY != 1
-            layerParams.scaleX = qt.scaleX
-            layerParams.scaleY = qt.scaleY
+    # if qt and qt.scaleX != 1 and qt.scaleY != 1
+    #     layerParams.scaleX = qt.scaleX
+    #     layerParams.scaleY = qt.scaleY
 
     ###
     # End of inner html
     ###
+
+    # if name == 'Shape' and node.children[0].id == 'lupa'
+    #     layerSvg.querySelector('#lupa').setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{layerParams.width/2} #{layerParams.height/2}");
+    #     console.log "data:image/svg+xml;charset=UTF-8,#{encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')}"
 
     # applies svg to image data
     layerParams.image = "data:image/svg+xml;charset=UTF-8,#{encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')}" # removes line breaks

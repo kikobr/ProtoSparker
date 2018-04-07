@@ -220,7 +220,7 @@ var PS = (function (exports) {
 	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1, getMatrixTransform: getMatrixTransform$1} = utils);
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var ancestor, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, def, defs, filter, filterClone, filterSelector, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, len5, len6, linked, linkedBBox, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, path, qt, ref, ref1, ref2, ref3, results, rotate, rotateX, rotateY, style, svg, tX, tY, url, use, useBBox, viewBox;
+	  var ancestor, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, def, defs, filter, filterClone, filterSelector, g, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, len5, len6, linked, linkedBBox, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, path, qt, ref, ref1, ref2, ref3, results, rotate, rotateX, rotateY, scaleX, scaleY, style, svg, tX, tY, toX, toY, url, use, useBBox, useBounds, viewBox;
 	  // ignoring
 	  if (node.nodeName === 'mask' || node.nodeName === 'clipPath' || node.nodeName === 'use' && node.parentNode.children.length === 1) {
 	    return false;
@@ -291,19 +291,29 @@ var PS = (function (exports) {
 	      }
 	    }
 	    useBBox = use.getBBox();
+	    useBounds = use.getBoundingClientRect();
 	    tX = -useBBox.x;
 	    tY = -useBBox.y;
+	    toX = useBBox.width / 2;
+	    toY = useBBox.height / 2;
 	    [rotate, rotateX, rotateY] = [0, 0, 0];
+	    [scaleX, scaleY] = [1, 1];
 	    qt = getMatrixTransform$1(use);
-	    if (qt && qt.angle) {
+	    if (qt) {
 	      rotate = qt.angle;
 	      rotateX = (useBBox.width / 2) + useBBox.x;
 	      rotateY = (useBBox.height / 2) + useBBox.y;
 	      tX += (nodeBBox.width - useBBox.width) / 2;
 	      tY += (nodeBBox.height - useBBox.height) / 2;
+	      scaleX = qt.scaleX;
+	      scaleY = qt.scaleY;
+	      // compensate origin distortion when useBBox.width differs from userBounds.width (scale + translate together)
+	      tX += (useBounds.width - useBBox.width) / 2;
+	      tY += (useBounds.height - useBBox.height) / 2;
 	    }
 	    inner = node.cloneNode(true);
-	    inner.children[0].setAttribute('transform', `translate(${tX} ${tY}) rotate(${rotate}, ${rotateX}, ${rotateY})`);
+	    inner.children[0].setAttribute('transform', `translate(${tX} ${tY}) rotate(${rotate}, ${rotateX}, ${rotateY}) scale(${scaleX} ${scaleY})`);
+	    inner.children[0].setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", `${toX} ${toY}`);
 	    layerSvg.insertAdjacentElement('afterbegin', inner);
 	  }
 	  if (node.nodeName === 'use') {
@@ -318,23 +328,43 @@ var PS = (function (exports) {
 	    }
 	    tX = -nodeBBox.x;
 	    tY = -nodeBBox.y;
+	    toX = nodeBBox.width / 2;
+	    toY = nodeBBox.height / 2;
 	    [rotate, rotateX, rotateY] = [0, 0, 0];
-	    if (qt && qt.angle) {
+	    [scaleX, scaleY] = [1, 1];
+	    if (qt) {
 	      rotate = qt.angle;
 	      rotateX = layerParams.width / 2;
 	      rotateY = layerParams.height / 2;
+	      scaleX = qt.scaleX;
+	      scaleY = qt.scaleY;
+	      // compensate origin distortion when nodeBBox.width differs from nodeBounds.width (scale + translate together)
+	      tX += (nodeBounds.width - nodeBBox.width) / 2;
+	      tY += (nodeBounds.height - nodeBBox.height) / 2;
 	    }
 	    inner = node.cloneNode();
-	    inner.setAttribute('transform', `translate(${tX} ${tY}) rotate(${rotate}, ${rotateX}, ${rotateY})`);
+	    inner.setAttribute('transform', `translate(${tX} ${tY}) rotate(${rotate}, ${rotateX}, ${rotateY}) scale(${scaleX} ${scaleY})`);
+	    inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", `${toX} ${toY}`);
 	    layerSvg.insertAdjacentElement('afterbegin', inner);
 	  } else if (node.nodeName !== 'g') {
 	    tX = -nodeBBox.x;
 	    tY = -nodeBBox.y;
 	    [rotate, rotateX, rotateY] = [0, 0, 0];
+	    [scaleX, scaleY] = [1, 1];
+	    toX = nodeBBox.width / 2;
+	    toY = nodeBBox.height / 2;
 	    layerSvg.setAttribute('width', nodeBBox.width);
 	    layerSvg.setAttribute('height', nodeBBox.height);
+	    if (qt) {
+	      scaleX = qt.scaleX;
+	      scaleY = qt.scaleY;
+	      // compensate origin distortion when nodeBBox.width differs from nodeBounds.width (scale + translate together)
+	      tX += (nodeBounds.width - nodeBBox.width) / 2;
+	      tY += (nodeBounds.height - nodeBBox.height) / 2;
+	    }
 	    inner = node.cloneNode(true);
-	    inner.setAttribute('transform', `translate(${tX} ${tY}) rotate(${rotate}, ${rotateX}, ${rotateY})`);
+	    inner.setAttribute('transform', `translate(${tX} ${tY}) rotate(${rotate}, ${rotateX}, ${rotateY}) scale(${scaleX} ${scaleY})`);
+	    inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", `${toX} ${toY}`);
 	    layerSvg.insertAdjacentElement('afterbegin', inner);
 	  }
 	  /*
@@ -415,7 +445,7 @@ var PS = (function (exports) {
 	    ref1 = mask.querySelectorAll('*');
 	    for (index = m = 0, len3 = ref1.length; m < len3; index = ++m) {
 	      child = ref1[index];
-	      if (child.nodeName === 'use' || child.nodeName === 'rect') {
+	      if (child.nodeName === 'use' || child.nodeName === 'rect' || child.nodeName === 'path') {
 	        defs = getUseDefs$1(child);
 	        for (n = 0, len4 = defs.length; n < len4; n++) {
 	          def = defs[n];
@@ -429,6 +459,11 @@ var PS = (function (exports) {
 	        childTx = childBounds.x || childBounds.left;
 	        childTy = childBounds.y || childBounds.top;
 	        [rotate, rotateX, rotateY] = [0, 0, 0];
+	        [scaleX, scaleY] = [1, 1];
+	        if (childBBox) {
+	          childTx -= childBBox.x;
+	          childTy -= childBBox.y;
+	        }
 	        if (parentLayer) {
 	          childTx -= parentLayer.screenFrame.x;
 	          childTy -= parentLayer.screenFrame.y;
@@ -438,6 +473,9 @@ var PS = (function (exports) {
 	          childTx -= linkedBBox.x;
 	          childTy -= linkedBBox.y;
 	        }
+	        // if qt
+	        //     childTx -= qt.translateX or 0
+	        //     childTy -= qt.translateY or 0
 	        if (node.nodeName === 'g' && node.children.length === 1 && node.children[0].nodeName === 'use') {
 	        } else if (nodeBBox) {
 	          childTx += nodeBBox.x;
@@ -445,7 +483,7 @@ var PS = (function (exports) {
 	        }
 	        // apply transforms over the clone, not the original svg
 	        childClone = maskClone.querySelectorAll('*')[index];
-	        childClone.setAttribute('transform', `translate(${childTx} ${childTy}) rotate(${rotate}, ${rotateX}, ${rotateY})`);
+	        childClone.setAttribute('transform', `translate(${childTx} ${childTy}) rotate(${rotate}, ${rotateX}, ${rotateY}) scale(${scaleX} ${scaleY})`);
 	      }
 	    }
 	    ref2 = layerSvg.children;
@@ -453,7 +491,14 @@ var PS = (function (exports) {
 	    for (o = 0, len5 = ref2.length; o < len5; o++) {
 	      child = ref2[o];
 	      if (child.nodeName === node.nodeName) {
-	        if (!child.hasAttribute('mask')) {
+	        if (node.hasAttribute('transform')) {
+	          // encapsulate with g if the layer has a transform, so that the mask isnt affected
+	          g = document.createElement('g');
+	          layerSvg.removeChild(child);
+	          g.appendChild(child);
+	          g.setAttribute('mask', `url(${maskSelector})`);
+	          layerSvg.insertAdjacentElement('afterbegin', g);
+	        } else if (!child.hasAttribute('mask')) {
 	          child.setAttribute('mask', `url(${maskSelector})`);
 	        }
 	      }
@@ -469,16 +514,16 @@ var PS = (function (exports) {
 	      layerSvg.querySelector('defs').insertAdjacentElement('afterbegin', style.cloneNode(true));
 	    }
 	  }
-	  // apply transformations that had matrix transforms
-	  if (qt) {
-	    if (qt.scaleX !== 1 || qt.scaleY !== 1) {
-	      layerParams.scaleX = qt.scaleX;
-	      layerParams.scaleY = qt.scaleY;
-	    }
-	  }
+	  // if qt and qt.scaleX != 1 and qt.scaleY != 1
+	  //     layerParams.scaleX = qt.scaleX
+	  //     layerParams.scaleY = qt.scaleY
 	  /*
 	   * End of inner html
 	   */
+	  // if name == 'Shape' and node.children[0].id == 'lupa'
+	  //     layerSvg.querySelector('#lupa').setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{layerParams.width/2} #{layerParams.height/2}");
+	  //     console.log "data:image/svg+xml;charset=UTF-8,#{encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')}"
+
 	  // applies svg to image data
 	  layerParams.image = `data:image/svg+xml;charset=UTF-8,${encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')) // removes line breaks
 }`;
