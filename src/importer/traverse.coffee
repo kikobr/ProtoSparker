@@ -5,7 +5,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
     # ignoring
     if node.nodeName == 'mask' or
         node.nodeName == 'clipPath' or
-        node.nodeName == 'use' and node.parentNode.children.length == 1 then return false
+        node.nodeName == 'use' and node.parentNode.children.length == 1
+            return false
 
     # setting active classes to hidden layers so that we can calculate getBoundingClientRect() correctly
     if node.parentNode and node.parentNode.nodeName == 'svg'
@@ -32,7 +33,11 @@ module.exports = traverse = (node, parent, parentLayer) ->
         name: name
         frame: {}
         screenFrame: {}
-        style: {}
+        style: {
+            'background-repeat': 'no-repeat'
+            'background-position': 'top left'
+            'background-size': 'auto'
+        }
         clip: false
         # backgroundColor: 'rgba(0,0,0,0.1)'
         x: (nodeBounds.x or nodeBounds.left)
@@ -58,7 +63,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
     # is rendered at 0,0 position of the layer
     ###
 
-    if node.nodeName == 'g' and node.children.length == 1 and node.children[0].nodeName != 'g'
+    if node.nodeName == 'g' and node.children.length == 1 and node.children[0].nodeName == 'use'
         use = node.children[0]
         layerSvg.setAttribute 'width', nodeBBox.width
         layerSvg.setAttribute 'height', nodeBBox.height
@@ -238,21 +243,12 @@ module.exports = traverse = (node, parent, parentLayer) ->
             layerParams.scaleX = qt.scaleX
             layerParams.scaleY = qt.scaleY
 
-    if name == 'Group 226'
-        console.log node
-        console.log layerSvg.outerHTML.replace(/\n|\t/g, ' ')
-
     ###
     # End of inner html
     ###
 
     # applies svg to image data
     layerParams.image = "data:image/svg+xml;charset=UTF-8,#{encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')}" # removes line breaks
-
-    # for debug purposes
-    # layerParams.backgroundColor = "rgba(255,255,255,0.05)"
-    # layerParams.style['border'] = "1px solid rgba(255,255,255,0.1)"
-    # layerParams.image = ''
 
     # creating Framer layer
     layer = new Layer layerParams

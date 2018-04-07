@@ -39,6 +39,9 @@ var PS = (function (exports) {
 
 	var getUseDefs_1 = getUseDefs = function(node) {
 	  var defs, fillDefs, i, len, link, linked, linkedSelector, svg;
+	  if (node.nodeName !== 'use') {
+	    return false;
+	  }
 	  svg = node.closest("svg");
 	  linkedSelector = node.getAttribute("xlink:href");
 	  linked = svg.querySelectorAll(linkedSelector);
@@ -248,7 +251,11 @@ var PS = (function (exports) {
 	    name: name,
 	    frame: {},
 	    screenFrame: {},
-	    style: {},
+	    style: {
+	      'background-repeat': 'no-repeat',
+	      'background-position': 'top left',
+	      'background-size': 'auto'
+	    },
 	    clip: false,
 	    // backgroundColor: 'rgba(0,0,0,0.1)'
 	    x: nodeBounds.x || nodeBounds.left,
@@ -272,7 +279,7 @@ var PS = (function (exports) {
 	   * Generating inner html and applying transforms so that the svg
 	   * is rendered at 0,0 position of the layer
 	   */
-	  if (node.nodeName === 'g' && node.children.length === 1 && node.children[0].nodeName !== 'g') {
+	  if (node.nodeName === 'g' && node.children.length === 1 && node.children[0].nodeName === 'use') {
 	    use = node.children[0];
 	    layerSvg.setAttribute('width', nodeBBox.width);
 	    layerSvg.setAttribute('height', nodeBBox.height);
@@ -469,10 +476,6 @@ var PS = (function (exports) {
 	      layerParams.scaleY = qt.scaleY;
 	    }
 	  }
-	  if (name === 'Group 226') {
-	    console.log(node);
-	    console.log(layerSvg.outerHTML.replace(/\n|\t/g, ' '));
-	  }
 	  /*
 	   * End of inner html
 	   */
@@ -480,11 +483,6 @@ var PS = (function (exports) {
 	  layerParams.image = `data:image/svg+xml;charset=UTF-8,${encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')) // removes line breaks
 }`;
 	  
-	  // for debug purposes
-	  // layerParams.backgroundColor = "rgba(255,255,255,0.05)"
-	  // layerParams.style['border'] = "1px solid rgba(255,255,255,0.1)"
-	  // layerParams.image = ''
-
 	  // creating Framer layer
 	  layer = new Layer(layerParams);
 	  if (parentLayer) {

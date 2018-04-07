@@ -14,6 +14,7 @@ exports.getRootG = getRootG = (node) ->
     return rootG
 
 exports.getUseDefs = getUseDefs = (node) ->
+    if node.nodeName != 'use' then return false
     svg = node.closest "svg"
     linkedSelector = node.getAttribute "xlink:href"
     linked = svg.querySelectorAll linkedSelector
