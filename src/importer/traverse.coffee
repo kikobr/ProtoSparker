@@ -249,6 +249,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
     # applies svg to image data
     layerParams.image = "data:image/svg+xml;charset=UTF-8,#{encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')}" # removes line breaks
+    layerParams.height = Math.ceil layerParams.height
+    layerParams.width = Math.ceil layerParams.width
 
     # creating Framer layer
     layer = new Layer layerParams
