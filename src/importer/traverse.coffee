@@ -81,20 +81,23 @@ module.exports = traverse = (node, parent, parentLayer) ->
         qt = getMatrixTransform use
 
         if qt
-            rotate = qt.angle
-            rotateX = (useBBox.width / 2) + useBBox.x
-            rotateY = (useBBox.height / 2) + useBBox.y
+            if qt.angle
+                toX += (nodeBBox.x - qt.translateX) + (useBounds.width - useBBox.width)
+                toY += (nodeBBox.y - qt.translateY) + (useBounds.height - useBBox.height)
+                rotate = qt.angle
+                rotateX = (useBBox.width / 2) + useBBox.x - toX
+                rotateY = (useBBox.height / 2) + useBBox.y - toY
             tX += ((nodeBBox.width - useBBox.width) / 2 )
             tY += ((nodeBBox.height - useBBox.height) / 2 )
             scaleX = qt.scaleX
             scaleY = qt.scaleY
-            # compensate origin distortion when useBBox.width differs from userBounds.width (scale + translate together)
-            tX += (useBounds.width - useBBox.width) / 2
-            tY += (useBounds.height - useBBox.height) / 2
 
         inner = node.cloneNode(true)
         inner.children[0].setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
-        inner.children[0].setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
+        inner.children[0].setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}")
+        # inner.children[0].setAttribute("transform-origin", "#{toX} #{toY}")
+        # inner.children[0].style['transformOrigin'] = "#{toX} #{toY}"
+        # inner.children[0].setAttributeNS("http://www.w3.org/2000/svg", "style", "transform-origin: \"#{toX} #{toY}\";")
         layerSvg.insertAdjacentElement 'afterbegin', inner
 
     if node.nodeName == 'use'
@@ -111,14 +114,17 @@ module.exports = traverse = (node, parent, parentLayer) ->
         [scaleX, scaleY] = [1,1]
 
         if qt
-            rotate = qt.angle
-            rotateX = layerParams.width / 2
-            rotateY = layerParams.height / 2
-            scaleX = qt.scaleX
-            scaleY = qt.scaleY
+            if qt.angle
+                toX += (nodeBounds.width - nodeBBox.width)
+                toY += (nodeBounds.height - nodeBBox.height)
+                rotate = qt.angle
+                rotateX = (nodeBBox.width / 2) + nodeBBox.x - toX
+                rotateY = (nodeBBox.height / 2) + nodeBBox.y - toY
             # compensate origin distortion when nodeBBox.width differs from nodeBounds.width (scale + translate together)
             tX += (nodeBounds.width - nodeBBox.width) / 2
             tY += (nodeBounds.height - nodeBBox.height) / 2
+            scaleX = qt.scaleX
+            scaleY = qt.scaleY
 
         inner = node.cloneNode()
         inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
@@ -239,6 +245,9 @@ module.exports = traverse = (node, parent, parentLayer) ->
                 [rotate, rotateX, rotateY] = [0,0,0]
                 [scaleX, scaleY] = [1,1]
 
+                toX = (childBBox.width / 2)
+                toY = (childBBox.height / 2)
+
                 if childBBox
                     childTx -= childBBox.x
                     childTy -= childBBox.y
@@ -247,23 +256,29 @@ module.exports = traverse = (node, parent, parentLayer) ->
                     childTx -= parentLayer.screenFrame.x
                     childTy -= parentLayer.screenFrame.y
 
-                if linked
-                    linkedBBox = linked.getBBox()
-                    childTx -= linkedBBox.x
-                    childTy -= linkedBBox.y
+                # if linked
+                #     linkedBBox = linked.getBBox()
+                #     childTx -= linkedBBox.x
+                #     childTy -= linkedBBox.y
 
                 # if qt
                 #     childTx -= qt.translateX or 0
                 #     childTy -= qt.translateY or 0
 
-                if node.nodeName == 'g' and node.children.length == 1 and node.children[0].nodeName == 'use' then ''
-                else if nodeBBox
-                    childTx += nodeBBox.x
-                    childTy += nodeBBox.y
+                if node.nodeName == 'g'
+                    if node.children.length == 1 and node.children[0].nodeName == 'use' then ''
+                    else if nodeBBox
+                        childTx += nodeBBox.x
+                        childTy += nodeBBox.y
+                else if node.parentNode.nodeName == 'g' and node.parentNode.children.length > 1
+                    parentNodeBBox = node.parentNode.getBBox()
+                    childTx += parentNodeBBox.x
+                    childTy += parentNodeBBox.y
 
                 # apply transforms over the clone, not the original svg
                 childClone = maskClone.querySelectorAll('*')[index]
                 childClone.setAttribute 'transform', "translate(#{childTx} #{childTy}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
+                childClone.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}")
 
         # apply mask attribute if node does not already have it
         for child in layerSvg.children
@@ -293,14 +308,14 @@ module.exports = traverse = (node, parent, parentLayer) ->
     # End of inner html
     ###
 
-    # if name == 'Shape' and node.children[0].id == 'lupa'
-    #     layerSvg.querySelector('#lupa').setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{layerParams.width/2} #{layerParams.height/2}");
-    #     console.log "data:image/svg+xml;charset=UTF-8,#{encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')}"
-
     # applies svg to image data
     layerParams.image = "data:image/svg+xml;charset=UTF-8,#{encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')}" # removes line breaks
     layerParams.height = Math.ceil layerParams.height
     layerParams.width = Math.ceil layerParams.width
+
+    # if name == "shape_azul"
+    #     console.log layerParams.image
+    #     layerParams.style['border'] = '1px solid red'
 
     # creating Framer layer
     layer = new Layer layerParams
