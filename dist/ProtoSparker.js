@@ -474,14 +474,13 @@ var PS = (function (exports) {
 	          childTx -= parentLayer.screenFrame.x;
 	          childTy -= parentLayer.screenFrame.y;
 	        }
-	        if (childBBox) {
-	          childTx -= childBBox.x;
-	          childTy -= childBBox.y;
-	        }
-	        if (node.nodeName === 'g' && node.parentNode) {
+	        if (node.nodeName === 'g' && node.parentNode && node.parentNode.nodeName === 'g') {
 	          parentNodeBBox = node.parentNode.getBBox();
-	          childTx += parentNodeBBox.x - nodeBBox.x;
-	          childTy += parentNodeBBox.y - nodeBBox.y;
+	          childTx += parentNodeBBox.x - nodeBBox.x - childBBox.x;
+	          childTy += parentNodeBBox.y - nodeBBox.y - childBBox.y;
+	        } else {
+	          childTx = nodeBBox.x - childBBox.x;
+	          childTy = nodeBBox.y - childBBox.y;
 	        }
 	        // apply transforms over the clone, not the original svg
 	        childClone = maskClone.querySelectorAll('*')[index];
@@ -517,7 +516,7 @@ var PS = (function (exports) {
 	      layerSvg.querySelector('defs').insertAdjacentElement('afterbegin', style.cloneNode(true));
 	    }
 	  }
-	  // if name == 'rect_test'
+	  // if name == 'bolinha' or name == 'cover'
 	  //     console.log layerParams
 	  //     layerParams.style['border'] = '1px solid red'
 	  //     console.log "data:image/svg+xml;charset=UTF-8,#{encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')}"
