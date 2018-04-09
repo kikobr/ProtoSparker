@@ -19,10 +19,11 @@ class exports.SvgImporter
 
     loadFile: (file, index) ->
         loadFile.call @, file, index
-        svgTraverse = document.querySelector "[data-import-id='#{index}'] svg > g"
+        svgTraverseEl = document.querySelectorAll "[data-import-id='#{index}'] svg > :not(defs):not(title):not(desc):not(style)"
 
         # traversing
-        traverse svgTraverse
+        for svgEl in svgTraverseEl
+            traverse svgEl
 
         if index == @files.length - 1
             @loading = false

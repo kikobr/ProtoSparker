@@ -39,7 +39,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
             'background-size': 'auto'
         }
         clip: false
-        # backgroundColor: 'rgba(0,0,0,0.1)'
+        backgroundColor: 'transparent'
         x: (nodeBounds.x or nodeBounds.left)
         y: (nodeBounds.y or nodeBounds.top)
         width: nodeBBox.width
@@ -203,7 +203,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
         # layerParams.y = 0
         layerParams.clip = true
 
-        if clipPath.children.length == 1 and node.children[0] and node.children[0].nodeName == 'path'
+        if clipPath.children.length == 1 and node.children.length == 1 and node.children[0].nodeName == 'path'
             path = node.children[0]
             layerParams.backgroundColor = path.getAttribute 'fill'
 
@@ -286,9 +286,10 @@ module.exports = traverse = (node, parent, parentLayer) ->
         style = svg.querySelector('style')
         if style then layerSvg.querySelector('defs').insertAdjacentElement 'afterbegin', style.cloneNode(true)
 
-    # if name == 'cover'
+    # if name == 'rect_test'
     #     console.log layerParams
     #     layerParams.style['border'] = '1px solid red'
+    #     console.log "data:image/svg+xml;charset=UTF-8,#{encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')}"
 
     ###
     # End of inner html
@@ -298,10 +299,6 @@ module.exports = traverse = (node, parent, parentLayer) ->
     layerParams.image = "data:image/svg+xml;charset=UTF-8,#{encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')}" # removes line breaks
     layerParams.height = Math.ceil layerParams.height
     layerParams.width = Math.ceil layerParams.width
-
-    # if name == "shape_azul"
-    #     console.log layerParams.image
-    #     layerParams.style['border'] = '1px solid red'
 
     # creating Framer layer
     layer = new Layer layerParams

@@ -257,7 +257,7 @@ var PS = (function (exports) {
 	      'background-size': 'auto'
 	    },
 	    clip: false,
-	    // backgroundColor: 'rgba(0,0,0,0.1)'
+	    backgroundColor: 'transparent',
 	    x: nodeBounds.x || nodeBounds.left,
 	    y: nodeBounds.y || nodeBounds.top,
 	    width: nodeBBox.width,
@@ -418,7 +418,7 @@ var PS = (function (exports) {
 	    // layerParams.x = 0
 	    // layerParams.y = 0
 	    layerParams.clip = true;
-	    if (clipPath.children.length === 1 && node.children[0] && node.children[0].nodeName === 'path') {
+	    if (clipPath.children.length === 1 && node.children.length === 1 && node.children[0].nodeName === 'path') {
 	      path = node.children[0];
 	      layerParams.backgroundColor = path.getAttribute('fill');
 	    }
@@ -517,9 +517,10 @@ var PS = (function (exports) {
 	      layerSvg.querySelector('defs').insertAdjacentElement('afterbegin', style.cloneNode(true));
 	    }
 	  }
-	  // if name == 'cover'
+	  // if name == 'rect_test'
 	  //     console.log layerParams
 	  //     layerParams.style['border'] = '1px solid red'
+	  //     console.log "data:image/svg+xml;charset=UTF-8,#{encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')}"
 	  /*
 	   * End of inner html
 	   */
@@ -528,10 +529,6 @@ var PS = (function (exports) {
 }`;
 	  layerParams.height = Math.ceil(layerParams.height);
 	  layerParams.width = Math.ceil(layerParams.width);
-	  // if name == "shape_azul"
-	  //     console.log layerParams.image
-	  //     layerParams.style['border'] = '1px solid red'
-
 	  // creating Framer layer
 	  layer = new Layer(layerParams);
 	  if (parentLayer) {
@@ -582,11 +579,14 @@ var PS = (function (exports) {
 	    }
 
 	    loadFile(file, index) {
-	      var svgTraverse;
+	      var i, len, svgEl, svgTraverseEl;
 	      loadFile$1.call(this, file, index);
-	      svgTraverse = document.querySelector(`[data-import-id='${index}'] svg > g`);
-	      // traversing
-	      traverse$1(svgTraverse);
+	      svgTraverseEl = document.querySelectorAll(`[data-import-id='${index}'] svg > :not(defs):not(title):not(desc):not(style)`);
+	// traversing
+	      for (i = 0, len = svgTraverseEl.length; i < len; i++) {
+	        svgEl = svgTraverseEl[i];
+	        traverse$1(svgEl);
+	      }
 	      if (index === this.files.length - 1) {
 	        return this.loading = false;
 	      }
