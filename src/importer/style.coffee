@@ -22,4 +22,6 @@ module.exports = """
         z-index: 2;
         position: relative;
     }
+    /* fix for when framer layers are bigger than screen */
+    .framerContext { overflow: hidden; }
 """

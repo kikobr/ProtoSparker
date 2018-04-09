@@ -181,7 +181,7 @@ var PS = (function (exports) {
 	  return this.svgContainer.insertAdjacentElement('afterbegin', importNode);
 	};
 
-	var style = "html, body {\n    margin: 0;\n    padding: 0;\n}\n#ps-importer-container {\n    visibility: hidden;\n    display: block;\n    position: relative;\n    z-index: 999;\n}\n#ps-importer-container.hidden {\n    display: none;\n}\n#ps-importer-container [data-import-id] {\n    position: absolute;\n    top: 0;\n    left: 0;\n    z-index: 1;\n}\n#ps-importer-container [data-import-id].active {\n    z-index: 2;\n    position: relative;\n}";
+	var style = "html, body {\n    margin: 0;\n    padding: 0;\n}\n#ps-importer-container {\n    visibility: hidden;\n    display: block;\n    position: relative;\n    z-index: 999;\n}\n#ps-importer-container.hidden {\n    display: none;\n}\n#ps-importer-container [data-import-id] {\n    position: absolute;\n    top: 0;\n    left: 0;\n    z-index: 1;\n}\n#ps-importer-container [data-import-id].active {\n    z-index: 2;\n    position: relative;\n}\n/* fix for when framer layers are bigger than screen */\n.framerContext { overflow: hidden; }";
 
 	var svgContainerStyle;
 
