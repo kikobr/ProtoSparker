@@ -248,32 +248,18 @@ module.exports = traverse = (node, parent, parentLayer) ->
                 toX = (childBBox.width / 2)
                 toY = (childBBox.height / 2)
 
-                if childBBox
-                    childTx -= childBBox.x
-                    childTy -= childBBox.y
-
                 if parentLayer
                     childTx -= parentLayer.screenFrame.x
                     childTy -= parentLayer.screenFrame.y
 
-                # if linked
-                #     linkedBBox = linked.getBBox()
-                #     childTx -= linkedBBox.x
-                #     childTy -= linkedBBox.y
+                if childBBox
+                    childTx -= childBBox.x
+                    childTy -= childBBox.y
 
-                # if qt
-                #     childTx -= qt.translateX or 0
-                #     childTy -= qt.translateY or 0
-
-                if node.nodeName == 'g'
-                    if node.children.length == 1 and node.children[0].nodeName == 'use' then ''
-                    else if nodeBBox
-                        childTx += nodeBBox.x
-                        childTy += nodeBBox.y
-                else if node.parentNode.nodeName == 'g' and node.parentNode.children.length > 1
+                if node.nodeName == 'g' and node.parentNode
                     parentNodeBBox = node.parentNode.getBBox()
-                    childTx += parentNodeBBox.x
-                    childTy += parentNodeBBox.y
+                    childTx += parentNodeBBox.x - nodeBBox.x
+                    childTy += parentNodeBBox.y - nodeBBox.y
 
                 # apply transforms over the clone, not the original svg
                 childClone = maskClone.querySelectorAll('*')[index]
@@ -300,9 +286,9 @@ module.exports = traverse = (node, parent, parentLayer) ->
         style = svg.querySelector('style')
         if style then layerSvg.querySelector('defs').insertAdjacentElement 'afterbegin', style.cloneNode(true)
 
-    # if qt and qt.scaleX != 1 and qt.scaleY != 1
-    #     layerParams.scaleX = qt.scaleX
-    #     layerParams.scaleY = qt.scaleY
+    # if name == 'cover'
+    #     console.log layerParams
+    #     layerParams.style['border'] = '1px solid red'
 
     ###
     # End of inner html
