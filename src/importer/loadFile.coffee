@@ -19,10 +19,15 @@ module.exports = (file, index) ->
     )[0]
     fileName = fileFullName.replace '.svg', ''
 
-    # gets root group and sets a name if it doesnt have one already
-    rootG = getRootG svg
-    if rootG and not rootG.hasAttribute('data-name') and not rootG.hasAttribute('id')
-        rootG.setAttribute 'data-name', fileName
+    # check if svg has a group wrapping everythin. if it doesnt, we'll use the svg as the "first layer"
+    hasRootG = if document.querySelectorAll("[data-import-id='#{index}'] svg > g").length == 1 then true else false
+    if hasRootG
+        # gets root group and sets a name if it doesnt have one already
+        rootG = getRootG svg
+        if rootG and not rootG.hasAttribute('data-name') and not rootG.hasAttribute('id')
+            rootG.setAttribute 'data-name', fileName
+    else
+        svg.setAttribute 'data-name', fileName
 
     if svg.getAttribute 'viewBox'
         viewBox = getViewBox.call this, svg

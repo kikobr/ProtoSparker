@@ -21,7 +21,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
     svg = node.closest 'svg'
     svgStr = ''
     nodeBounds = node.getBoundingClientRect()
-    nodeBBox = node.getBBox()
+    nodeBBox = if node.getBBox then node.getBBox() else { x: 0, y: 0 }
     name = if node.getAttribute 'data-name' then node.getAttribute 'data-name' else node.id
     skipChildren = false
     computedStyle = getComputedStyle node
@@ -285,24 +285,35 @@ module.exports = traverse = (node, parent, parentLayer) ->
         style = svg.querySelector('style')
         if style then layerSvg.querySelector('defs').insertAdjacentElement 'afterbegin', style.cloneNode(true)
 
-    # if name == 'bolinha' or name == 'cover'
-    #     console.log layerParams
-    #     layerParams.style['border'] = '1px solid red'
-    #     console.log "data:image/svg+xml;charset=UTF-8,#{encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')}"
-
     ###
     # End of inner html
     ###
 
     # applies svg to image data
-    layerParams.image = "data:image/svg+xml;charset=UTF-8,#{encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')}" # removes line breaks
+    layerParams.image = "data:image/svg+xml;charset=UTF-8,#{
+        encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')  # removes line breaks
+            .replace(/\"/g, "\\\"")
+            .replace(/\'/g, "\\'")
+    }"
     layerParams.height = Math.ceil layerParams.height
     layerParams.width = Math.ceil layerParams.width
+
+    if node.nodeName == 'svg'
+        layerParams.x = nodeBounds.x or nodeBounds.left
+        layerParams.y = nodeBounds.y or nodeBounds.top
+        layerParams.width = nodeBounds.width
+        layerParams.height = nodeBounds.height
+        layerParams.clip = true
 
     # creating Framer layer
     layer = new Layer layerParams
     if parentLayer then layer.parent = parentLayer
     createdLayer = layer
+
+    # if name == 'text'
+    #     console.log layerSvg
+    #     console.log layer
+    #     console.log layer.image
 
     # continue traversing
     for child, i in node.children

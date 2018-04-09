@@ -139,7 +139,7 @@ var PS = (function (exports) {
 	({getViewBox: getViewBox$1, getRootG: getRootG$1} = utils);
 
 	var loadFile = function(file, index) {
-	  var fileFullName, fileName, importNode, rootG, svg, viewBox, xhr;
+	  var fileFullName, fileName, hasRootG, importNode, rootG, svg, viewBox, xhr;
 	  // console.log("loading #{file}")
 	  xhr = new XMLHttpRequest();
 	  xhr.open("GET", file, false);
@@ -155,10 +155,16 @@ var PS = (function (exports) {
 	    }
 	  })[0];
 	  fileName = fileFullName.replace('.svg', '');
-	  // gets root group and sets a name if it doesnt have one already
-	  rootG = getRootG$1(svg);
-	  if (rootG && !rootG.hasAttribute('data-name') && !rootG.hasAttribute('id')) {
-	    rootG.setAttribute('data-name', fileName);
+	  // check if svg has a group wrapping everythin. if it doesnt, we'll use the svg as the "first layer"
+	  hasRootG = document.querySelectorAll(`[data-import-id='${index}'] svg > g`).length === 1 ? true : false;
+	  if (hasRootG) {
+	    // gets root group and sets a name if it doesnt have one already
+	    rootG = getRootG$1(svg);
+	    if (rootG && !rootG.hasAttribute('data-name') && !rootG.hasAttribute('id')) {
+	      rootG.setAttribute('data-name', fileName);
+	    }
+	  } else {
+	    svg.setAttribute('data-name', fileName);
 	  }
 	  if (svg.getAttribute('viewBox')) {
 	    viewBox = getViewBox$1.call(this, svg);
@@ -241,7 +247,10 @@ var PS = (function (exports) {
 	  createdLayer = null;
 	  svg = node.closest('svg');
 	  nodeBounds = node.getBoundingClientRect();
-	  nodeBBox = node.getBBox();
+	  nodeBBox = node.getBBox ? node.getBBox() : {
+	    x: 0,
+	    y: 0
+	  };
 	  name = node.getAttribute('data-name') ? node.getAttribute('data-name') : node.id;
 	  computedStyle = getComputedStyle(node);
 	  isFirefox = navigator.userAgent.indexOf("Firefox") > 0 ? true : false;
@@ -516,18 +525,21 @@ var PS = (function (exports) {
 	      layerSvg.querySelector('defs').insertAdjacentElement('afterbegin', style.cloneNode(true));
 	    }
 	  }
-	  // if name == 'bolinha' or name == 'cover'
-	  //     console.log layerParams
-	  //     layerParams.style['border'] = '1px solid red'
-	  //     console.log "data:image/svg+xml;charset=UTF-8,#{encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')}"
 	  /*
 	   * End of inner html
 	   */
 	  // applies svg to image data
-	  layerParams.image = `data:image/svg+xml;charset=UTF-8,${encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')) // removes line breaks
+	  layerParams.image = `data:image/svg+xml;charset=UTF-8,${encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')).replace(/\"/g, "\\\"").replace(/\'/g, "\\'") // removes line breaks
 }`;
 	  layerParams.height = Math.ceil(layerParams.height);
 	  layerParams.width = Math.ceil(layerParams.width);
+	  if (node.nodeName === 'svg') {
+	    layerParams.x = nodeBounds.x || nodeBounds.left;
+	    layerParams.y = nodeBounds.y || nodeBounds.top;
+	    layerParams.width = nodeBounds.width;
+	    layerParams.height = nodeBounds.height;
+	    layerParams.clip = true;
+	  }
 	  // creating Framer layer
 	  layer = new Layer(layerParams);
 	  if (parentLayer) {
@@ -535,6 +547,11 @@ var PS = (function (exports) {
 	  }
 	  createdLayer = layer;
 	  ref3 = node.children;
+	  // if name == 'text'
+	  //     console.log layerSvg
+	  //     console.log layer
+	  //     console.log layer.image
+
 	  // continue traversing
 	  results = [];
 	  for (i = p = 0, len6 = ref3.length; p < len6; i = ++p) {
@@ -578,13 +595,18 @@ var PS = (function (exports) {
 	    }
 
 	    loadFile(file, index) {
-	      var i, len, svgEl, svgTraverseEl;
+	      var hasRootG, i, len, svgEl, svgTraverseEl;
 	      loadFile$1.call(this, file, index);
 	      svgTraverseEl = document.querySelectorAll(`[data-import-id='${index}'] svg > :not(defs):not(title):not(desc):not(style)`);
-	// traversing
-	      for (i = 0, len = svgTraverseEl.length; i < len; i++) {
-	        svgEl = svgTraverseEl[i];
-	        traverse$1(svgEl);
+	      hasRootG = document.querySelectorAll(`[data-import-id='${index}'] svg > g`).length === 1 ? true : false;
+	      // traversing
+	      if (hasRootG) {
+	        for (i = 0, len = svgTraverseEl.length; i < len; i++) {
+	          svgEl = svgTraverseEl[i];
+	          traverse$1(svgEl);
+	        }
+	      } else {
+	        traverse$1(document.querySelector(`[data-import-id='${index}'] svg`));
 	      }
 	      if (index === this.files.length - 1) {
 	        return this.loading = false;
