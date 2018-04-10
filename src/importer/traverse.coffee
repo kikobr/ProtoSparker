@@ -65,6 +65,9 @@ module.exports = traverse = (node, parent, parentLayer) ->
     # is rendered at 0,0 position of the layer
     ###
 
+    # groups that has only simple shapes may be rendered as just one framer layer.
+    # if node.nodeName == 'g' and node.querySelectorAll(':scope > circle').length == node.children.length then skipChildren = true
+
     if node.nodeName == 'g' and node.children.length == 1 and node.children[0].nodeName == 'use'
         use = node.children[0]
         layerSvg.setAttribute 'width', nodeBBox.width
@@ -138,45 +141,58 @@ module.exports = traverse = (node, parent, parentLayer) ->
     #     if qt and qt.angle
     #         layerParams.rotation = qt.angle
 
-    else if node.nodeName != 'g'
-        tX = -nodeBBox.x
-        tY = -nodeBBox.y
-        [rotate, rotateX, rotateY] = [0,0,0]
-        [scaleX, scaleY] = [1,1]
-        toX = (nodeBBox.width / 2)
-        toY = (nodeBBox.height / 2)
+    else if node.nodeName != 'g' or (node.nodeName == 'g' and skipChildren)
+            tX = -nodeBBox.x
+            tY = -nodeBBox.y
+            [rotate, rotateX, rotateY] = [0,0,0]
+            [scaleX, scaleY] = [1,1]
+            toX = (nodeBBox.width / 2)
+            toY = (nodeBBox.height / 2)
 
-        layerSvg.setAttribute 'width', nodeBBox.width
-        layerSvg.setAttribute 'height', nodeBBox.height
+            layerSvg.setAttribute 'width', nodeBBox.width
+            layerSvg.setAttribute 'height', nodeBBox.height
 
-        # check if theres a g ancestor applying a rotation
-        ancestorT = node.parentNode.closest('[transform]')
-        if ancestorT
-            t = getMatrixTransform ancestorT
-            if t.angle
-                rotate += t.angle
+            # check if theres a g ancestor applying a rotation
+            ancestorT = node.parentNode.closest('[transform]')
+            if ancestorT
+                t = getMatrixTransform ancestorT
+                if t.angle
+                    rotate += t.angle
 
-        if qt
-            if qt.angle
-                toX += (nodeBounds.width - nodeBBox.width)
-                toY += (nodeBounds.height - nodeBBox.height)
-                rotate += qt.angle
-                rotateX += (nodeBBox.width / 2) + nodeBBox.x - toX
-                rotateY += (nodeBBox.height / 2) + nodeBBox.y - toY
-            scaleX = qt.scaleX
-            scaleY = qt.scaleY
-            # compensate origin distortion when nodeBBox.width differs from nodeBounds.width (scale + translate together)
-            tX += (nodeBounds.width - nodeBBox.width) / 2
-            tY += (nodeBounds.height - nodeBBox.height) / 2
+            if qt
+                if qt.angle
+                    toX += (nodeBounds.width - nodeBBox.width)
+                    toY += (nodeBounds.height - nodeBBox.height)
+                    rotate += qt.angle
+                    rotateX += (nodeBBox.width / 2) + nodeBBox.x - toX
+                    rotateY += (nodeBBox.height / 2) + nodeBBox.y - toY
+                scaleX = qt.scaleX
+                scaleY = qt.scaleY
+                # compensate origin distortion when nodeBBox.width differs from nodeBounds.width (scale + translate together)
+                tX += (nodeBounds.width - nodeBBox.width) / 2
+                tY += (nodeBounds.height - nodeBBox.height) / 2
 
-        inner = node.cloneNode(true)
-        inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
-        inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
-        layerSvg.insertAdjacentElement 'afterbegin', inner
+            inner = node.cloneNode(true)
+            inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
+            inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
+            layerSvg.insertAdjacentElement 'afterbegin', inner
 
     ###
     # Extra layer info
     ###
+
+    if node.hasAttribute('fill') or (computedStyle.fill and computedStyle.fill != 'none')
+        fill = node.getAttribute('fill') or computedStyle.fill
+        if fill.match('url')
+            # removes "" and ''
+            url = fill.replace('url("', 'url(').replace('url(\'', 'url(')
+                .replace(/\"\)$/, ')').replace(/\'\)$/, ')')
+            fillSelector = url.replace(/(^url\((.+)\)$)/, '$2')
+            # apply the id selector if the url() didn't contain it before
+            if fillSelector.substring(0,1) != '#' then fillSelector = "\##{fillSelector}"
+
+            fill = svg.querySelector fillSelector
+            layerSvg.querySelector('defs').insertAdjacentElement 'beforeend', fill.cloneNode(true)
 
     # some clip-paths are applied as classes
     if not isFirefox and (node.hasAttribute('clip-path') or (computedStyle.clipPath and computedStyle.clipPath != 'none'))
@@ -308,6 +324,11 @@ module.exports = traverse = (node, parent, parentLayer) ->
         style = svg.querySelector('style')
         if style then layerSvg.querySelector('defs').insertAdjacentElement 'afterbegin', style.cloneNode(true)
 
+    if node.nodeName == 'line'
+        layerSvg.removeAttribute 'height'
+        strokeWidth = if computedStyle['stroke-width'] then parseFloat computedStyle['stroke-width'].replace('px','') else 1
+        layerParams.height += strokeWidth
+
     ###
     # End of inner html
     ###
@@ -333,11 +354,11 @@ module.exports = traverse = (node, parent, parentLayer) ->
     if parentLayer then layer.parent = parentLayer
     createdLayer = layer
 
-    # if name == 'Path 401'
-    #     console.log name
-    #     console.log layerParams.image
-    #     layer.style['border'] = '1px solid yellow'
+    # if name == 'Bg'
+    #     layer.style['border'] = '1px solid green'
+    #     console.log layer.image
 
     # continue traversing
-    for child, i in node.children
-        traverse child, node, createdLayer ? createdLayer : null
+    if not skipChildren
+        for child, i in node.children
+            traverse child, node, createdLayer ? createdLayer : null

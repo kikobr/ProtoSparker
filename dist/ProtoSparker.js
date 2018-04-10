@@ -251,7 +251,7 @@ var PS = (function (exports) {
 	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1, getMatrixTransform: getMatrixTransform$1} = utils);
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var ancestor, ancestorT, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, def, defs, filter, filterClone, filterSelector, g, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, len5, len6, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, parentNodeBBox, path, qt, ref, ref1, ref2, ref3, results, rotate, rotateX, rotateY, scaleX, scaleY, style, svg, t, tX, tY, toX, toY, url, use, useBBox, useBounds, viewBox;
+	  var ancestor, ancestorT, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, def, defs, fill, fillSelector, filter, filterClone, filterSelector, g, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, len5, len6, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, parentNodeBBox, path, qt, ref, ref1, ref2, ref3, results, rotate, rotateX, rotateY, scaleX, scaleY, skipChildren, strokeWidth, style, svg, t, tX, tY, toX, toY, url, use, useBBox, useBounds, viewBox;
 	  // ignoring
 	  if (node.nodeName === 'mask' || node.nodeName === 'clipPath' || node.nodeName === 'use' && node.parentNode.children.length === 1) {
 	    return false;
@@ -277,6 +277,7 @@ var PS = (function (exports) {
 	    y: 0
 	  };
 	  name = node.getAttribute('data-name') ? node.getAttribute('data-name') : node.id;
+	  skipChildren = false;
 	  computedStyle = getComputedStyle(node);
 	  isFirefox = navigator.userAgent.indexOf("Firefox") > 0 ? true : false;
 	  qt = getMatrixTransform$1(node);
@@ -315,6 +316,8 @@ var PS = (function (exports) {
 	   * Generating inner html and applying transforms so that the svg
 	   * is rendered at 0,0 position of the layer
 	   */
+	  // groups that has only simple shapes may be rendered as just one framer layer.
+	  // if node.nodeName == 'g' and node.querySelectorAll(':scope > circle').length == node.children.length then skipChildren = true
 	  if (node.nodeName === 'g' && node.children.length === 1 && node.children[0].nodeName === 'use') {
 	    use = node.children[0];
 	    layerSvg.setAttribute('width', nodeBBox.width);
@@ -394,7 +397,7 @@ var PS = (function (exports) {
 	  //     # these groups do not render any svg
 	  //     if qt and qt.angle
 	  //         layerParams.rotation = qt.angle
-	  } else if (node.nodeName !== 'g') {
+	  } else if (node.nodeName !== 'g' || (node.nodeName === 'g' && skipChildren)) {
 	    tX = -nodeBBox.x;
 	    tY = -nodeBBox.y;
 	    [rotate, rotateX, rotateY] = [0, 0, 0];
@@ -433,6 +436,20 @@ var PS = (function (exports) {
 	  /*
 	   * Extra layer info
 	   */
+	  if (node.hasAttribute('fill') || (computedStyle.fill && computedStyle.fill !== 'none')) {
+	    fill = node.getAttribute('fill') || computedStyle.fill;
+	    if (fill.match('url')) {
+	      // removes "" and ''
+	      url = fill.replace('url("', 'url(').replace('url(\'', 'url(').replace(/\"\)$/, ')').replace(/\'\)$/, ')');
+	      fillSelector = url.replace(/(^url\((.+)\)$)/, '$2');
+	      // apply the id selector if the url() didn't contain it before
+	      if (fillSelector.substring(0, 1) !== '#') {
+	        fillSelector = `\#${fillSelector}`;
+	      }
+	      fill = svg.querySelector(fillSelector);
+	      layerSvg.querySelector('defs').insertAdjacentElement('beforeend', fill.cloneNode(true));
+	    }
+	  }
 	  // some clip-paths are applied as classes
 	  if (!isFirefox && (node.hasAttribute('clip-path') || (computedStyle.clipPath && computedStyle.clipPath !== 'none'))) {
 	    url = node.getAttribute('clip-path') || computedStyle.clipPath;
@@ -575,6 +592,11 @@ var PS = (function (exports) {
 	      layerSvg.querySelector('defs').insertAdjacentElement('afterbegin', style.cloneNode(true));
 	    }
 	  }
+	  if (node.nodeName === 'line') {
+	    layerSvg.removeAttribute('height');
+	    strokeWidth = computedStyle['stroke-width'] ? parseFloat(computedStyle['stroke-width'].replace('px', '')) : 1;
+	    layerParams.height += strokeWidth;
+	  }
 	  /*
 	   * End of inner html
 	   */
@@ -596,21 +618,22 @@ var PS = (function (exports) {
 	    layer.parent = parentLayer;
 	  }
 	  createdLayer = layer;
-	  ref3 = node.children;
-	  // if name == 'Path 401'
-	  //     console.log name
-	  //     console.log layerParams.image
-	  //     layer.style['border'] = '1px solid yellow'
+	  // if name == 'Bg'
+	  //     layer.style['border'] = '1px solid green'
+	  //     console.log layer.image
 
 	  // continue traversing
-	  results = [];
-	  for (i = p = 0, len6 = ref3.length; p < len6; i = ++p) {
-	    child = ref3[i];
-	    results.push(traverse(child, node, createdLayer != null ? createdLayer : {
-	      createdLayer: null
-	    }));
+	  if (!skipChildren) {
+	    ref3 = node.children;
+	    results = [];
+	    for (i = p = 0, len6 = ref3.length; p < len6; i = ++p) {
+	      child = ref3[i];
+	      results.push(traverse(child, node, createdLayer != null ? createdLayer : {
+	        createdLayer: null
+	      }));
+	    }
+	    return results;
 	  }
-	  return results;
 	};
 
 	var loadFile$1, setupContainer$1, traverse$1;
