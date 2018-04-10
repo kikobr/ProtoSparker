@@ -42,6 +42,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
         backgroundColor: 'transparent'
         x: (nodeBounds.x or nodeBounds.left)
         y: (nodeBounds.y or nodeBounds.top)
+        originX: 0.5,
+        originY: 0.5,
         width: nodeBBox.width
         height: nodeBBox.height
 
@@ -131,6 +133,11 @@ module.exports = traverse = (node, parent, parentLayer) ->
         inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
         layerSvg.insertAdjacentElement 'afterbegin', inner
 
+    # else if node.nodeName == 'g'
+    #     # these groups do not render any svg
+    #     if qt and qt.angle
+    #         layerParams.rotation = qt.angle
+
     else if node.nodeName != 'g'
         tX = -nodeBBox.x
         tY = -nodeBBox.y
@@ -142,7 +149,20 @@ module.exports = traverse = (node, parent, parentLayer) ->
         layerSvg.setAttribute 'width', nodeBBox.width
         layerSvg.setAttribute 'height', nodeBBox.height
 
+        # check if theres a g ancestor applying a rotation
+        ancestorT = node.parentNode.closest('[transform]')
+        if ancestorT
+            t = getMatrixTransform ancestorT
+            if t.angle
+                rotate += t.angle
+
         if qt
+            if qt.angle
+                toX += (nodeBounds.width - nodeBBox.width)
+                toY += (nodeBounds.height - nodeBBox.height)
+                rotate += qt.angle
+                rotateX += (nodeBBox.width / 2) + nodeBBox.x - toX
+                rotateY += (nodeBBox.height / 2) + nodeBBox.y - toY
             scaleX = qt.scaleX
             scaleY = qt.scaleY
             # compensate origin distortion when nodeBBox.width differs from nodeBounds.width (scale + translate together)
@@ -153,7 +173,6 @@ module.exports = traverse = (node, parent, parentLayer) ->
         inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
         inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
         layerSvg.insertAdjacentElement 'afterbegin', inner
-
 
     ###
     # Extra layer info
@@ -198,6 +217,10 @@ module.exports = traverse = (node, parent, parentLayer) ->
             if parentLayer
                 layerParams.x -= parentLayer.screenFrame.x
                 layerParams.y -= parentLayer.screenFrame.y
+
+        if qt
+            layerParams.x += qt.translateX
+            layerParams.y += qt.translateY
 
         # layerParams.x = 0
         # layerParams.y = 0
@@ -310,10 +333,10 @@ module.exports = traverse = (node, parent, parentLayer) ->
     if parentLayer then layer.parent = parentLayer
     createdLayer = layer
 
-    # if name == 'text'
-    #     console.log layerSvg
-    #     console.log layer
-    #     console.log layer.image
+    # if name == 'Path 401'
+    #     console.log name
+    #     console.log layerParams.image
+    #     layer.style['border'] = '1px solid yellow'
 
     # continue traversing
     for child, i in node.children

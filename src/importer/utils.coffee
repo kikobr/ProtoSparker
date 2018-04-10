@@ -80,4 +80,22 @@ exports.getMatrixTransform = getMatrixTransform = (node, log=false) ->
             console.log 'matrix', matrixArray
             console.log node.getAttribute 'transform'
         return qrDecompose matrixArray
+    else if node.hasAttribute('transform')
+        nodeT = node.getAttribute('transform')
+        transform =
+            angle: 0,
+            scaleX: 1,
+            scaleY: 1,
+            translateX: 0,
+            translateY: 0
+        translate = nodeT.match(/translate\(([^)]+)\)/)
+        if translate and translate.length
+            translate = translate[1].split(" ").map((t) -> return parseFloat t)
+            transform.translateX = translate[0]
+            transform.translateY = translate[1]
+        rotate = nodeT.match(/rotate\(([^)]+)\)/)
+        if rotate and rotate.length
+            rotate = rotate[1].split(" ").map((t) -> return parseFloat t)
+            transform.angle = parseFloat rotate[0]
+        return transform
     else return false
