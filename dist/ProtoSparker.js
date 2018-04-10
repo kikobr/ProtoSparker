@@ -251,7 +251,7 @@ var PS = (function (exports) {
 	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1, getMatrixTransform: getMatrixTransform$1} = utils);
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var ancestor, ancestorT, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, def, defs, fill, fillSelector, filter, filterClone, filterSelector, g, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, len5, len6, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, parentNodeBBox, path, qt, ref, ref1, ref2, ref3, results, rotate, rotateX, rotateY, scaleX, scaleY, skipChildren, strokeWidth, style, svg, t, tX, tY, toX, toY, url, use, useBBox, useBounds, viewBox;
+	  var ancestor, ancestorT, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, currentStyle, def, defs, fill, fillSelector, filter, filterClone, filterSelector, g, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, len5, len6, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, parentNodeBBox, path, qt, ref, ref1, ref2, ref3, results, rotate, rotateX, rotateY, scaleX, scaleY, skipChildren, strokeWidth, style, svg, t, tX, tY, toX, toY, url, use, useBBox, useBounds, viewBox;
 	  // ignoring
 	  if (node.nodeName === 'mask' || node.nodeName === 'clipPath' || node.nodeName === 'use' && node.parentNode.children.length === 1) {
 	    return false;
@@ -352,8 +352,13 @@ var PS = (function (exports) {
 	      scaleY = qt.scaleY;
 	    }
 	    inner = node.cloneNode(true);
-	    inner.children[0].setAttribute('transform', `translate(${tX} ${tY}) rotate(${rotate}, ${rotateX}, ${rotateY}) scale(${scaleX} ${scaleY})`);
-	    inner.children[0].setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", `${toX} ${toY}`);
+	    // inner.children[0].setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}) scale(#{scaleX} #{scaleY})"
+	    // inner.children[0].setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX + rotateX}px #{toY + rotateY}px")
+	    currentStyle = inner.children[0].getAttribute('style') || '';
+	    currentStyle = currentStyle.replace('transform', '_transform');
+	    inner.children[0].removeAttribute('transform');
+	    inner.children[0].removeAttribute('transform-origin');
+	    inner.children[0].setAttribute('style', `${currentStyle}; transform-origin: ${toX + rotateX}px ${toY + rotateY}px; transform: translate(${tX}px, ${tY}px) rotate(${rotate}deg) scale(${scaleX}, ${scaleY});`);
 	    // inner.children[0].setAttribute("transform-origin", "#{toX} #{toY}")
 	    // inner.children[0].style['transformOrigin'] = "#{toX} #{toY}"
 	    // inner.children[0].setAttributeNS("http://www.w3.org/2000/svg", "style", "transform-origin: \"#{toX} #{toY}\";")
@@ -390,8 +395,13 @@ var PS = (function (exports) {
 	      scaleY = qt.scaleY;
 	    }
 	    inner = node.cloneNode();
-	    inner.setAttribute('transform', `translate(${tX} ${tY}) rotate(${rotate}, ${rotateX}, ${rotateY}) scale(${scaleX} ${scaleY})`);
-	    inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", `${toX} ${toY}`);
+	    // inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
+	    // inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
+	    currentStyle = inner.getAttribute('style') || '';
+	    currentStyle = currentStyle.replace('transform', '_transform');
+	    inner.removeAttribute('transform');
+	    inner.removeAttribute('transform-origin');
+	    inner.setAttribute('style', `${currentStyle}; transform-origin: ${toX + rotateX}px ${toY + rotateY}px; transform: translate(${tX}px, ${tY}px) rotate(${rotate}deg) scale(${scaleX}, ${scaleY});`);
 	    layerSvg.insertAdjacentElement('afterbegin', inner);
 	  // else if node.nodeName == 'g'
 	  //     # these groups do not render any svg
@@ -429,8 +439,13 @@ var PS = (function (exports) {
 	      tY += (nodeBounds.height - nodeBBox.height) / 2;
 	    }
 	    inner = node.cloneNode(true);
-	    inner.setAttribute('transform', `translate(${tX} ${tY}) rotate(${rotate}, ${rotateX}, ${rotateY}) scale(${scaleX} ${scaleY})`);
-	    inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", `${toX} ${toY}`);
+	    // inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
+	    // inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
+	    currentStyle = inner.getAttribute('style') || '';
+	    currentStyle = currentStyle.replace('transform', '_transform');
+	    inner.removeAttribute('transform');
+	    inner.removeAttribute('transform-origin');
+	    inner.setAttribute('style', `${currentStyle}; transform-origin: ${toX + rotateX}px ${toY + rotateY}px; transform: translate(${tX}px, ${tY}px) rotate(${rotate}deg) scale(${scaleX}, ${scaleY});`);
 	    layerSvg.insertAdjacentElement('afterbegin', inner);
 	  }
 	  /*
@@ -560,8 +575,13 @@ var PS = (function (exports) {
 	        }
 	        // apply transforms over the clone, not the original svg
 	        childClone = maskClone.querySelectorAll('*')[index];
-	        childClone.setAttribute('transform', `translate(${childTx} ${childTy}) rotate(${rotate}, ${rotateX}, ${rotateY}) scale(${scaleX} ${scaleY})`);
-	        childClone.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", `${toX} ${toY}`);
+	        // childClone.setAttribute 'transform', "translate(#{childTx} #{childTy}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
+	        // childClone.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}")
+	        currentStyle = childClone.getAttribute('style') || '';
+	        currentStyle = currentStyle.replace('transform', '_transform');
+	        childClone.removeAttribute('transform');
+	        childClone.removeAttribute('transform-origin');
+	        childClone.setAttribute('style', `${currentStyle}; transform-origin: ${toX + rotateX}px ${toY + rotateY}px; transform: translate(${childTx}px, ${childTy}px) rotate(${rotate}deg) scale(${scaleX}, ${scaleY});`);
 	      }
 	    }
 	    ref2 = layerSvg.children;
@@ -618,7 +638,7 @@ var PS = (function (exports) {
 	    layer.parent = parentLayer;
 	  }
 	  createdLayer = layer;
-	  // if name == 'Bg'
+	  // if name == 'Vector 3.1'
 	  //     layer.style['border'] = '1px solid green'
 	  //     console.log layer.image
 

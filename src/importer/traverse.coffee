@@ -98,8 +98,14 @@ module.exports = traverse = (node, parent, parentLayer) ->
             scaleY = qt.scaleY
 
         inner = node.cloneNode(true)
-        inner.children[0].setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
-        inner.children[0].setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}")
+        # inner.children[0].setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}) scale(#{scaleX} #{scaleY})"
+        # inner.children[0].setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX + rotateX}px #{toY + rotateY}px")
+        currentStyle = inner.children[0].getAttribute('style') or ''
+        currentStyle = currentStyle.replace('transform', '_transform')
+        inner.children[0].removeAttribute 'transform'
+        inner.children[0].removeAttribute 'transform-origin'
+        inner.children[0].setAttribute 'style', "#{currentStyle}; transform-origin: #{toX + rotateX}px #{toY + rotateY}px; transform: translate(#{tX}px, #{tY}px) rotate(#{rotate}deg) scale(#{scaleX}, #{scaleY});"
+
         # inner.children[0].setAttribute("transform-origin", "#{toX} #{toY}")
         # inner.children[0].style['transformOrigin'] = "#{toX} #{toY}"
         # inner.children[0].setAttributeNS("http://www.w3.org/2000/svg", "style", "transform-origin: \"#{toX} #{toY}\";")
@@ -132,8 +138,13 @@ module.exports = traverse = (node, parent, parentLayer) ->
             scaleY = qt.scaleY
 
         inner = node.cloneNode()
-        inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
-        inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
+        # inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
+        # inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
+        currentStyle = inner.getAttribute('style') or ''
+        currentStyle = currentStyle.replace('transform', '_transform')
+        inner.removeAttribute 'transform'
+        inner.removeAttribute 'transform-origin'
+        inner.setAttribute 'style', "#{currentStyle}; transform-origin: #{toX + rotateX}px #{toY + rotateY}px; transform: translate(#{tX}px, #{tY}px) rotate(#{rotate}deg) scale(#{scaleX}, #{scaleY});"
         layerSvg.insertAdjacentElement 'afterbegin', inner
 
     # else if node.nodeName == 'g'
@@ -173,8 +184,14 @@ module.exports = traverse = (node, parent, parentLayer) ->
                 tY += (nodeBounds.height - nodeBBox.height) / 2
 
             inner = node.cloneNode(true)
-            inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
-            inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
+            # inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
+            # inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
+            currentStyle = inner.getAttribute('style') or ''
+            currentStyle = currentStyle.replace('transform', '_transform')
+            inner.removeAttribute 'transform'
+            inner.removeAttribute 'transform-origin'
+            inner.setAttribute 'style', "#{currentStyle}; transform-origin: #{toX + rotateX}px #{toY + rotateY}px; transform: translate(#{tX}px, #{tY}px) rotate(#{rotate}deg) scale(#{scaleX}, #{scaleY});"
+
             layerSvg.insertAdjacentElement 'afterbegin', inner
 
     ###
@@ -301,8 +318,13 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
                 # apply transforms over the clone, not the original svg
                 childClone = maskClone.querySelectorAll('*')[index]
-                childClone.setAttribute 'transform', "translate(#{childTx} #{childTy}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
-                childClone.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}")
+                # childClone.setAttribute 'transform', "translate(#{childTx} #{childTy}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
+                # childClone.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}")
+                currentStyle = childClone.getAttribute('style') or ''
+                currentStyle = currentStyle.replace('transform', '_transform')
+                childClone.removeAttribute 'transform'
+                childClone.removeAttribute 'transform-origin'
+                childClone.setAttribute 'style', "#{currentStyle}; transform-origin: #{toX + rotateX}px #{toY + rotateY}px; transform: translate(#{childTx}px, #{childTy}px) rotate(#{rotate}deg) scale(#{scaleX}, #{scaleY});"
 
         # apply mask attribute if node does not already have it
         for child in layerSvg.children
@@ -354,7 +376,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
     if parentLayer then layer.parent = parentLayer
     createdLayer = layer
 
-    # if name == 'Bg'
+    # if name == 'Vector 3.1'
     #     layer.style['border'] = '1px solid green'
     #     console.log layer.image
 
