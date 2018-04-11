@@ -1,0 +1,32 @@
+{
+    "name": "protosparker",
+    "version": "1.0.0",
+    "description": "automatically creates framer.js prototypes",
+    "main": "dist/protoSparker.js",
+    "scripts": {
+        "dev": "rollup -cw"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/kikobr/ProtoSparker.git"
+    },
+    "keywords": [
+        "framerjs"
+    ],
+    "author": "Kiko Herrschaft",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/kikobr/ProtoSparker/issues"
+    },
+    "homepage": "https://github.com/kikobr/ProtoSparker#readme",
+    "devDependencies": {
+        "coffeescript": "^2.2.3",
+        "lodash": "^4.17.5",
+        "rollup": "^0.57.1",
+        "rollup-plugin-coffee-script": "^2.0.0",
+        "rollup-plugin-commonjs": "^9.1.0",
+        "rollup-plugin-livereload": "^0.6.0",
+        "rollup-plugin-node-resolve": "^3.3.0",
+        "rollup-plugin-serve": "^0.4.2"
+    }
+}

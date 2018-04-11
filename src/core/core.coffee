@@ -11,8 +11,13 @@
 # TODO: melhorar o @actions para não precisar de hardcoded das ações nos métodos
 # TODO QUESTION: condicionais para exibir ou não elemento?
 
-exports.parse = parse = (string) ->
+transitions = require './transitions'
+transitions = require './transitions'
+exports.f = f = require('./find').f
+exports.ff = ff = require('./find').ff
+merge = require 'lodash/merge'
 
+exports.parse = parse = (string) ->
 	# if actions are divided with spaces, ignore spaces "action1:target; action2:target;"
 	string = string.replace(/;_/gi, ';')
 
@@ -26,6 +31,7 @@ exports.parse = parse = (string) ->
 
 	acts = string.split ';'
 	acts.filter (action) ->
+		if not action then return false
 		matches = action.match regexAction
 		action = matches[1]
 		target = matches[2]
@@ -47,120 +53,7 @@ exports.parse = parse = (string) ->
 			target: target,
 			options: options
 		}
-
 	return actions
-
-timeDefault = 0.5
-timeFast = 0.2
-transitions =
-	fade: (nav, layerA, layerB, overlay) ->
-		transition =
-			layerA:
-				show:
-					opacity: 1
-					options:
-						time: timeDefault
-				hide:
-					opacity: 0
-					options:
-						time: timeDefault
-			layerB:
-				show:
-					opacity: 1
-					options:
-						time: timeDefault
-				hide:
-					opacity: 0
-					options:
-						time: timeDefault
-	slideUp: (nav, layerA, layerB, overlay) ->
-		transition =
-			layerA:
-				show:
-					opacity: 1
-					options:
-						time: timeFast
-				hide:
-					opacity: 0.5
-					options:
-						time: timeFast
-			layerB:
-				show:
-					y: 0
-					opacity: 1
-					options:
-						time: timeDefault
-				hide:
-					y: 500
-					opacity: 0
-					options:
-						time: timeDefault
-	slideDown: (nav, layerA, layerB, overlay) ->
-		transition =
-			layerA:
-				show:
-					opacity: 1
-					options:
-						time: timeFast
-				hide:
-					opacity: 0.5
-					options:
-						time: timeFast
-			layerB:
-				show:
-					y: 0
-					opacity: 1
-					options:
-						time: timeDefault
-				hide:
-					y: -500
-					opacity: 0
-					options:
-						time: timeDefault
-	slideLeft: (nav, layerA, layerB, overlay) ->
-		transition =
-			layerA:
-				show:
-					opacity: 1
-					options:
-						time: timeFast
-				hide:
-					opacity: 0.5
-					options:
-						time: timeFast
-			layerB:
-				show:
-					x: 0
-					opacity: 1
-					options:
-						time: timeDefault
-				hide:
-					x: 500
-					opacity: 0
-					options:
-						time: timeDefault
-	slideRight: (nav, layerA, layerB, overlay) ->
-		transition =
-			layerA:
-				show:
-					opacity: 1
-					options:
-						time: timeFast
-				hide:
-					opacity: 0.5
-					options:
-						time: timeFast
-			layerB:
-				show:
-					x: 0
-					opacity: 1
-					options:
-						time: timeDefault
-				hide:
-					x: -500
-					opacity: 0
-					options:
-						time: timeDefault
 
 class exports.ProtoSparker
 
@@ -207,13 +100,16 @@ class exports.ProtoSparker
 
 	constructor: (@options={}) ->
 		# Opts
+
 		@options.firstPage ?= null
+		if typeof @options.firstPage == 'string'
+			@options.firstPage = f(@options.firstPage)
 
 		@options.textField ?= {}
-		@options.textField = _.merge @defaultTextField, @options.textField
+		@options.textField = merge @defaultTextField, @options.textField
 
 		@options.selectField ?= {}
-		@options.selectField = _.merge @defaultSelectField, @options.selectField
+		@options.selectField = merge @defaultSelectField, @options.selectField
 
 		@actions = [
 			{ selector: "goback", fn: @goBack },
@@ -227,8 +123,13 @@ class exports.ProtoSparker
 
 		default_w = @options.firstPage.width
 		default_h = @options.firstPage.height
-		screen_width = Framer.Device.screen.width
-		screen_height = Framer.Device.screen.height
+
+		if Framer.Device and Framer.Device.screen
+			screen_width = Framer.Device.screen.width
+			screen_height = Framer.Device.screen.height
+		else
+			screen_width = window.innerWidth
+			screen_height = window.innerHeight
 
 		# Something is fucked up when running the prototype on framer.cloud on chrome.
 		# Prototype is seems to overflow window height.
@@ -290,17 +191,20 @@ class exports.ProtoSparker
 				@actions.forEach (action) =>
 					if layerAction.match action.selector
 						layerFns.push action.fn
-			layer.onClick () =>
+
+			layer.on 'click', () =>
 				layerFns.forEach (fn) =>
 					fn.call this, layer
 
 			layerName = @getLayerName layer
 			actions = parse(layerName)
+
 			overlayIndex = actions.findIndex (i) -> i.action == "overlay"
 			if overlayIndex >= 0
 				# hide overlay layers when prototype boots up
 				action = actions[overlayIndex]
 				destinationLayer = f(action.target)
+				if not destinationLayer then return
 				destinationLayer.visible = false
 
 		@generateFields()
@@ -339,6 +243,7 @@ class exports.ProtoSparker
 		action = actions[0]
 
 		destinationLayer = f(action.target)
+		if not destinationLayer then return
 		destinationLayer.x = 0
 		destinationLayer.y = 0
 
@@ -358,6 +263,7 @@ class exports.ProtoSparker
 			return action.action == 'overlay'
 		action = actions[0]
 		destinationLayer = f(action.target)
+		if not destinationLayer then return
 
 		topIndex = action.options.findIndex (i) -> i.name == "top"
 		rightIndex = action.options.findIndex (i) -> i.name == "right"
@@ -605,61 +511,5 @@ class exports.ProtoSparker
 				element.placeBehind defaultElement
 				element.x = defaultElement.x
 				element.y = defaultElement.y
+				element.opacity = 1
 				element.visible = false
-
-# f, ff
-_getHierarchy = (layer) ->
-	string = ''
-	for a in layer.ancestors()
-		# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
-		if a._info and a._info.originalName
-			string = a._info.originalName+'>'+string
-		else
-			string = a.name+'>'+string
-
-	# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
-	if layer._info and layer._info.originalName
-		string = string+layer._info.originalName
-	else
-		string = string+layer.name
-	return string
-
-_match = (hierarchy, string) ->
-  # prepare regex tokens
-  string = string.replace(/\s*>\s*/g,'>') # clean up spaces around arrows
-  string = string.split('*').join('[^>]*') # asteriks as layer name wildcard
-  string = string.split(' ').join('(?:.*)>') # space as structure wildcard
-  string = string.split(',').join('$|') # allow multiple searches using comma
-  regexString = "(^|>)"+string+"$" # always bottom layer, maybe part of hierarchy
-
-  regExp = new RegExp(regexString)
-  return hierarchy.match(regExp)
-
-_findAll = (selector, fromLayer) ->
-	layers = Framer.CurrentContext._layers
-
-	if selector?
-		stringNeedsRegex = _.find ['*',' ','>',','], (c) -> _.includes selector,c
-		unless stringNeedsRegex or fromLayer
-			layers = _.filter layers, (layer) ->
-				# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
-				if layer._info and layer._info.originalName
-					if layer._info.originalName is selector then true
-				else
-					if layer.name is selector then true
-		else
-			layers = _.filter layers, (layer) ->
-				hierarchy = _getHierarchy(layer)
-				if fromLayer?
-					# if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
-					if fromLayer._info and fromLayer._info.originalName
-						_match(hierarchy, fromLayer._info.originalName+' '+selector)
-					else
-						_match(hierarchy, fromLayer.name+' '+selector)
-				else
-					_match(hierarchy, selector)
-	else
-		layers
-
-f = exports.f = (selector, fromLayer) -> _findAll(selector, fromLayer)[0]
-ff = exports.ff = (selector, fromLayer) -> _findAll(selector, fromLayer)

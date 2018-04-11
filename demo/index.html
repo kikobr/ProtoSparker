@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+    </head>
+    <body>
+        <!-- <h1>Hello World</h1> -->
+        <script src="js/framer.min.js"></script>
+        <script src="ProtoSparker.js"></script>
+        <script type="text/javascript">
+            var importer = new SvgImporter({
+                files: [
+                    'img/home.svg',
+                    'img/drawer.svg',
+                    'img/settings.svg',
+                    'img/message.svg',
+                    // 'img/page1.svg',
+                    // 'img/xd_svg.svg',
+                ]
+            });
+            var protoSparker = new ProtoSparker({
+                firstPage: f('Home')
+            });
+        </script>
+    </body>
+</html>
