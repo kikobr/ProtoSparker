@@ -41,7 +41,7 @@ require 'ProtoSparker'
 importer = new SvgImporter
     files: ['img/page1.svg', 'img/page2.svg']
 protoSparker = new ProtoSparker
-    firstPage: f('page1') # the name of the artboard
+    firstPage: f('page1') # the name of the artboard or svg file
 ```
 
 #### Using it with Framer.js (open source engine that runs on Windows, Linux and Mac) ####
@@ -59,7 +59,7 @@ First you'll have to download Framer.js library ([visit this page and click on t
                 files: [ 'img/page1.svg', 'img/page2.svg' ]
             });
             var protoSparker = new ProtoSparker({
-                firstPage: f('page1') // name of the artboard
+                firstPage: f('page1') // name of the artboard or svg file
             });
         </script>
     </body>
