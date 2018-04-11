@@ -31,7 +31,7 @@ That's it! Now go back to your design software, start changing layers names foll
 
 ---
 
-## Using the Importer *~beta~*
+## Using the Importer *beta*
 You can also import SVG files to work with Framer. This means you can use it outside a Mac, with the Framer open source engine. Bear in mind that this Importer is highly experimental, so don't expect perfect imports.
 
 #### Using it inside Framer Studio ####
