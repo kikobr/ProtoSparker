@@ -21,7 +21,7 @@ Open your layout inside Figma or Sketch and rename the layers you want to intera
 ```coffeescript
 figma = Framer.Importer.load("imported/Your project@1x")
 
-{ProtoSparker} = require 'protoSparker'
+require 'ProtoSparker'
 protoSparker = new ProtoSparker
     # pass a layer as the first page
     firstPage: figma.pageLayer
@@ -31,8 +31,8 @@ That's it! Now go back to your design software, start changing layers names foll
 
 ---
 
-## Using the Importer (beta)
-You can also import SVG files to work with Framer. This means you can use it outside a Mac, with the Framer open source engine. Bear in mind that this Importer is highly experimental and don't expect it to run flawlessly.
+## Using the Importer *~beta~*
+You can also import SVG files to work with Framer. This means you can use it outside a Mac, with the Framer open source engine. Bear in mind that this Importer is highly experimental, so don't expect perfect imports.
 
 #### Using it inside Framer Studio ####
 Grab our *dist/ProtoSparker.js* and place it inside your project's modules folder. Then type:
@@ -66,9 +66,13 @@ First you'll have to download Framer.js library ([visit this page and click on t
 </html>
 ```
 
-**Important 1**: you have to serve this page as an HTTP server so that our script can request your svg files. If you have Python installed, simply type `python -m SimpleHTTPServer 8000` or `python -m http.server 8000`, hit enter and visit http://localhost:8000 in your browser.
+##### Serving the page #####
+You have to serve this page with an HTTP server so that our script can request your svg files. If you are on Mac or Linux, open your terminal, navigate to the project folder and type `python -m SimpleHTTPServer 8000` or `python -m http.server 8000` - hit enter and visit http://localhost:8000 in your browser. If you are on Windows, you can download [MiniWeb](https://sourceforge.net/projects/miniweb/), drop you html files and images inside htdocs folder, run miniweb.exe and visit http://localhost:8000.
 
-**Important 2**: this prototype won't run on Firefox since it has a bug dealing with .getBBox() on hidden SVG elements. :/
+##### What's not working yet #####
+*Not running on Firefox*: Firefox has a [bug](https://bugzilla.mozilla.org/show_bug.cgi?id=612118) dealing with .getBBox().
+
+*Drop shadows*: This is much harder than it seems.
 
 ---
 
