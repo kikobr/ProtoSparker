@@ -45,14 +45,14 @@ protoSparker = new ProtoSparker
 ```
 
 ### Using it with Framer.js (open source engine that runs on Windows, Linux and Mac) ###
-First you'll have to download Framer.js library ([visit this page and click on the latest framer.js link](http://builds.framerjs.com/?utm_source=GitHub%2C%20framerjs%2C%20readme&utm_medium=Github)). Then, you'll have to include this script alongside ProtoSparker (download it at *dist/ProtoSparker.js*) in an HTML file and serve it via a web server.
+First you'll have to download Framer.js library ([visit this page and download the latest framer.js, use the link on the left called 'framer.js'](http://builds.framerjs.com/?utm_source=GitHub%2C%20framerjs%2C%20readme&utm_medium=Github)). Then, you'll have to include this script alongside ProtoSparker (download it at *dist/ProtoSparker.js*) in an HTML file and serve it via a web server.
 
 ```html
 <!DOCTYPE html>
 <html>
     <head><meta charset="utf-8"></head>
     <body>
-        <script src="js/framer.min.js"></script>
+        <script src="js/framer.js"></script>
         <script src="js/ProtoSparker.js"></script>
         <script type="text/javascript">
             var importer = new SvgImporter({
