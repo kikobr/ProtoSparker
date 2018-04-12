@@ -14,16 +14,21 @@ exports.getRootG = getRootG = (node) ->
     return rootG
 
 exports.getUseDefs = getUseDefs = (node) ->
-    if node.nodeName != 'use' then return false
+    # if node.nodeName != 'use' then return false
     svg = node.closest "svg"
-    linkedSelector = node.getAttribute "xlink:href"
-    linked = svg.querySelectorAll linkedSelector
     defs = []
-    for link in linked
-        defs.push link.cloneNode()
+
+    linkedSelector = node.getAttribute "xlink:href"
+    if linkedSelector && not linkedSelector.match('data:') && not linkedSelector.match('/')
+        linked = svg.querySelectorAll linkedSelector
+        for link in linked
+            defs.push link.cloneNode()
 
     fillDefs = getFillDefs node
     if fillDefs then defs = defs.concat fillDefs # comes cloned
+    strokeDefs = getStrokeDefs node
+    if strokeDefs then defs = defs.concat strokeDefs # comes cloned
+
     return defs
 
 exports.getFillDefs = getFillDefs = (node) ->
@@ -37,6 +42,22 @@ exports.getFillDefs = getFillDefs = (node) ->
         # get uses if this fill contains them
         if fill.querySelector 'use'
             uses = fill.querySelectorAll 'use'
+            for use in uses
+                useDefs = getUseDefs use
+                if useDefs then defs = defs.concat useDefs # comes cloned
+    return defs;
+
+exports.getStrokeDefs = getStrokeDefs = (node) ->
+    defs = []
+    if node.hasAttribute("stroke") and node.getAttribute("stroke").match("url")
+        svg = node.closest "svg"
+        strokeUrl = node.getAttribute('stroke').replace(/(^url\()(.+)(\)$)/, '$2')
+        stroke = svg.querySelector strokeUrl
+        defs.push stroke.cloneNode(true)
+
+        # get uses if this fill contains them
+        if stroke.querySelector 'use'
+            uses = stroke.querySelectorAll 'use'
             for use in uses
                 useDefs = getUseDefs use
                 if useDefs then defs = defs.concat useDefs # comes cloned

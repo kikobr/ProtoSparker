@@ -153,46 +153,48 @@ module.exports = traverse = (node, parent, parentLayer) ->
     #         layerParams.rotation = qt.angle
 
     else if node.nodeName != 'g' or (node.nodeName == 'g' and skipChildren)
-            tX = -nodeBBox.x
-            tY = -nodeBBox.y
-            [rotate, rotateX, rotateY] = [0,0,0]
-            [scaleX, scaleY] = [1,1]
-            toX = (nodeBBox.width / 2)
-            toY = (nodeBBox.height / 2)
+        tX = -nodeBBox.x
+        tY = -nodeBBox.y
+        [rotate, rotateX, rotateY] = [0,0,0]
+        [scaleX, scaleY] = [1,1]
+        toX = (nodeBBox.width / 2)
+        toY = (nodeBBox.height / 2)
+        layerSvg.setAttribute 'width', nodeBBox.width
+        layerSvg.setAttribute 'height', nodeBBox.height
 
-            layerSvg.setAttribute 'width', nodeBBox.width
-            layerSvg.setAttribute 'height', nodeBBox.height
+        defs = getUseDefs node
+        if defs then layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def) for def in defs
 
-            # check if theres a g ancestor applying a rotation
-            ancestorT = node.parentNode.closest('[transform]')
-            if ancestorT
-                t = getMatrixTransform ancestorT
-                if t.angle
-                    rotate += t.angle
+        # check if theres a g ancestor applying a rotation
+        ancestorT = node.parentNode.closest('[transform]')
+        if ancestorT
+            t = getMatrixTransform ancestorT
+            if t.angle
+                rotate += t.angle
 
-            if qt
-                if qt.angle
-                    toX += (nodeBounds.width - nodeBBox.width)
-                    toY += (nodeBounds.height - nodeBBox.height)
-                    rotate += qt.angle
-                    rotateX += (nodeBBox.width / 2) + nodeBBox.x - toX
-                    rotateY += (nodeBBox.height / 2) + nodeBBox.y - toY
-                scaleX = qt.scaleX
-                scaleY = qt.scaleY
-                # compensate origin distortion when nodeBBox.width differs from nodeBounds.width (scale + translate together)
-                tX += (nodeBounds.width - nodeBBox.width) / 2
-                tY += (nodeBounds.height - nodeBBox.height) / 2
+        if qt
+            if qt.angle
+                toX += (nodeBounds.width - nodeBBox.width)
+                toY += (nodeBounds.height - nodeBBox.height)
+                rotate += qt.angle
+                rotateX += (nodeBBox.width / 2) + nodeBBox.x - toX
+                rotateY += (nodeBBox.height / 2) + nodeBBox.y - toY
+            scaleX = qt.scaleX
+            scaleY = qt.scaleY
+            # compensate origin distortion when nodeBBox.width differs from nodeBounds.width (scale + translate together)
+            tX += (nodeBounds.width - nodeBBox.width) / 2
+            tY += (nodeBounds.height - nodeBBox.height) / 2
 
-            inner = node.cloneNode(true)
-            # inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
-            # inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
-            currentStyle = inner.getAttribute('style') or ''
-            currentStyle = currentStyle.replace('transform', '_transform')
-            inner.removeAttribute 'transform'
-            inner.removeAttribute 'transform-origin'
-            inner.setAttribute 'style', "#{currentStyle}; transform-origin: #{toX + rotateX}px #{toY + rotateY}px; transform: translate(#{tX}px, #{tY}px) rotate(#{rotate}deg) scale(#{scaleX}, #{scaleY});"
+        inner = node.cloneNode(true)
+        # inner.setAttribute 'transform', "translate(#{tX} #{tY}) rotate(#{rotate}, #{rotateX}, #{rotateY}) scale(#{scaleX} #{scaleY})"
+        # inner.setAttributeNS("http://www.w3.org/2000/svg", "transform-origin", "#{toX} #{toY}");
+        currentStyle = inner.getAttribute('style') or ''
+        currentStyle = currentStyle.replace('transform', '_transform')
+        inner.removeAttribute 'transform'
+        inner.removeAttribute 'transform-origin'
+        inner.setAttribute 'style', "#{currentStyle}; transform-origin: #{toX + rotateX}px #{toY + rotateY}px; transform: translate(#{tX}px, #{tY}px) rotate(#{rotate}deg) scale(#{scaleX}, #{scaleY});"
 
-            layerSvg.insertAdjacentElement 'afterbegin', inner
+        layerSvg.insertAdjacentElement 'afterbegin', inner
 
     ###
     # Extra layer info
@@ -210,6 +212,11 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
             fill = svg.querySelector fillSelector
             layerSvg.querySelector('defs').insertAdjacentElement 'beforeend', fill.cloneNode(true)
+    else
+        # get node inside layerSvg and set a fill transparent
+        for child in layerSvg.children
+            if child.nodeName == node.nodeName
+                child.setAttribute 'fill', 'transparent'
 
     # some clip-paths are applied as classes
     if not isFirefox and (node.hasAttribute('clip-path') or (computedStyle.clipPath and computedStyle.clipPath != 'none'))
@@ -376,9 +383,11 @@ module.exports = traverse = (node, parent, parentLayer) ->
     if parentLayer then layer.parent = parentLayer
     createdLayer = layer
 
-    # if name == 'Vector 3.1'
+    # if name == 'path1' or name == 'path2' or name == 'path3' or name == 'path4'
     #     layer.style['border'] = '1px solid green'
     #     console.log layer.image
+    #     console.log node.outerHTML
+    #     console.log '___'
 
     # continue traversing
     if not skipChildren

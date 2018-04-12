@@ -8,7 +8,7 @@ var PS = (function (exports) {
 		return module = { exports: {} }, fn(module, module.exports), module.exports;
 	}
 
-	var getFillDefs, getMatrixTransform, getRootG, getUseDefs, getViewBox;
+	var getFillDefs, getMatrixTransform, getRootG, getStrokeDefs, getUseDefs, getViewBox;
 
 	var getViewBox_1 = getViewBox = function(node) {
 	  var svg, viewBox;
@@ -38,21 +38,25 @@ var PS = (function (exports) {
 	};
 
 	var getUseDefs_1 = getUseDefs = function(node) {
-	  var defs, fillDefs, i, len, link, linked, linkedSelector, svg;
-	  if (node.nodeName !== 'use') {
-	    return false;
-	  }
+	  var defs, fillDefs, i, len, link, linked, linkedSelector, strokeDefs, svg;
+	  // if node.nodeName != 'use' then return false
 	  svg = node.closest("svg");
-	  linkedSelector = node.getAttribute("xlink:href");
-	  linked = svg.querySelectorAll(linkedSelector);
 	  defs = [];
-	  for (i = 0, len = linked.length; i < len; i++) {
-	    link = linked[i];
-	    defs.push(link.cloneNode());
+	  linkedSelector = node.getAttribute("xlink:href");
+	  if (linkedSelector && !linkedSelector.match('data:') && !linkedSelector.match('/')) {
+	    linked = svg.querySelectorAll(linkedSelector);
+	    for (i = 0, len = linked.length; i < len; i++) {
+	      link = linked[i];
+	      defs.push(link.cloneNode());
+	    }
 	  }
 	  fillDefs = getFillDefs(node);
 	  if (fillDefs) {
 	    defs = defs.concat(fillDefs); // comes cloned
+	  }
+	  strokeDefs = getStrokeDefs(node);
+	  if (strokeDefs) {
+	    defs = defs.concat(strokeDefs); // comes cloned
 	  }
 	  return defs;
 	};
@@ -68,6 +72,29 @@ var PS = (function (exports) {
 	    // get uses if this fill contains them
 	    if (fill.querySelector('use')) {
 	      uses = fill.querySelectorAll('use');
+	      for (i = 0, len = uses.length; i < len; i++) {
+	        use = uses[i];
+	        useDefs = getUseDefs(use);
+	        if (useDefs) {
+	          defs = defs.concat(useDefs); // comes cloned
+	        }
+	      }
+	    }
+	  }
+	  return defs;
+	};
+
+	var getStrokeDefs_1 = getStrokeDefs = function(node) {
+	  var defs, i, len, stroke, strokeUrl, svg, use, useDefs, uses;
+	  defs = [];
+	  if (node.hasAttribute("stroke") && node.getAttribute("stroke").match("url")) {
+	    svg = node.closest("svg");
+	    strokeUrl = node.getAttribute('stroke').replace(/(^url\()(.+)(\)$)/, '$2');
+	    stroke = svg.querySelector(strokeUrl);
+	    defs.push(stroke.cloneNode(true));
+	    // get uses if this fill contains them
+	    if (stroke.querySelector('use')) {
+	      uses = stroke.querySelectorAll('use');
 	      for (i = 0, len = uses.length; i < len; i++) {
 	        use = uses[i];
 	        useDefs = getUseDefs(use);
@@ -156,6 +183,7 @@ var PS = (function (exports) {
 		getRootG: getRootG_1,
 		getUseDefs: getUseDefs_1,
 		getFillDefs: getFillDefs_1,
+		getStrokeDefs: getStrokeDefs_1,
 		getMatrixTransform: getMatrixTransform_1
 	};
 
@@ -251,7 +279,7 @@ var PS = (function (exports) {
 	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1, getMatrixTransform: getMatrixTransform$1} = utils);
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var ancestor, ancestorT, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, currentStyle, def, defs, fill, fillSelector, filter, filterClone, filterSelector, g, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, len5, len6, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, parentNodeBBox, path, qt, ref, ref1, ref2, ref3, results, rotate, rotateX, rotateY, scaleX, scaleY, skipChildren, strokeWidth, style, svg, t, tX, tY, toX, toY, url, use, useBBox, useBounds, viewBox;
+	  var ancestor, ancestorT, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, currentStyle, def, defs, fill, fillSelector, filter, filterClone, filterSelector, g, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, len5, len6, len7, len8, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, parentNodeBBox, path, q, qt, r, ref, ref1, ref2, ref3, ref4, results, rotate, rotateX, rotateY, scaleX, scaleY, skipChildren, strokeWidth, style, svg, t, tX, tY, toX, toY, url, use, useBBox, useBounds, viewBox;
 	  // ignoring
 	  if (node.nodeName === 'mask' || node.nodeName === 'clipPath' || node.nodeName === 'use' && node.parentNode.children.length === 1) {
 	    return false;
@@ -416,6 +444,13 @@ var PS = (function (exports) {
 	    toY = nodeBBox.height / 2;
 	    layerSvg.setAttribute('width', nodeBBox.width);
 	    layerSvg.setAttribute('height', nodeBBox.height);
+	    defs = getUseDefs$1(node);
+	    if (defs) {
+	      for (l = 0, len2 = defs.length; l < len2; l++) {
+	        def = defs[l];
+	        layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def);
+	      }
+	    }
 	    // check if theres a g ancestor applying a rotation
 	    ancestorT = node.parentNode.closest('[transform]');
 	    if (ancestorT) {
@@ -463,6 +498,15 @@ var PS = (function (exports) {
 	      }
 	      fill = svg.querySelector(fillSelector);
 	      layerSvg.querySelector('defs').insertAdjacentElement('beforeend', fill.cloneNode(true));
+	    }
+	  } else {
+	    ref = layerSvg.children;
+	    // get node inside layerSvg and set a fill transparent
+	    for (m = 0, len3 = ref.length; m < len3; m++) {
+	      child = ref[m];
+	      if (child.nodeName === node.nodeName) {
+	        child.setAttribute('fill', 'transparent');
+	      }
 	    }
 	  }
 	  // some clip-paths are applied as classes
@@ -522,10 +566,10 @@ var PS = (function (exports) {
 	    filter = svg.querySelector(filterSelector);
 	    filterClone = filter.cloneNode(true);
 	    layerSvg.querySelector('defs').insertAdjacentElement('beforeend', filterClone);
-	    ref = layerSvg.children;
+	    ref1 = layerSvg.children;
 	    // since filter is not working yet, disable it
-	    for (l = 0, len2 = ref.length; l < len2; l++) {
-	      child = ref[l];
+	    for (n = 0, len4 = ref1.length; n < len4; n++) {
+	      child = ref1[n];
 	      if (child.nodeName === node.nodeName) {
 	        child.removeAttribute('filter');
 	      }
@@ -541,13 +585,13 @@ var PS = (function (exports) {
 	      use = node.children[0];
 	      useBBox = use.getBBox();
 	    }
-	    ref1 = mask.querySelectorAll('*');
-	    for (index = m = 0, len3 = ref1.length; m < len3; index = ++m) {
-	      child = ref1[index];
+	    ref2 = mask.querySelectorAll('*');
+	    for (index = o = 0, len5 = ref2.length; o < len5; index = ++o) {
+	      child = ref2[index];
 	      if (child.nodeName === 'use' || child.nodeName === 'rect' || child.nodeName === 'path') {
 	        defs = getUseDefs$1(child);
-	        for (n = 0, len4 = defs.length; n < len4; n++) {
-	          def = defs[n];
+	        for (p = 0, len6 = defs.length; p < len6; p++) {
+	          def = defs[p];
 	          layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def);
 	        }
 	        childBBox = child.getBBox();
@@ -584,10 +628,10 @@ var PS = (function (exports) {
 	        childClone.setAttribute('style', `${currentStyle}; transform-origin: ${toX + rotateX}px ${toY + rotateY}px; transform: translate(${childTx}px, ${childTy}px) rotate(${rotate}deg) scale(${scaleX}, ${scaleY});`);
 	      }
 	    }
-	    ref2 = layerSvg.children;
+	    ref3 = layerSvg.children;
 	    // apply mask attribute if node does not already have it
-	    for (o = 0, len5 = ref2.length; o < len5; o++) {
-	      child = ref2[o];
+	    for (q = 0, len7 = ref3.length; q < len7; q++) {
+	      child = ref3[q];
 	      if (child.nodeName === node.nodeName) {
 	        if (node.hasAttribute('transform')) {
 	          // encapsulate with g if the layer has a transform, so that the mask isnt affected
@@ -638,16 +682,18 @@ var PS = (function (exports) {
 	    layer.parent = parentLayer;
 	  }
 	  createdLayer = layer;
-	  // if name == 'Vector 3.1'
+	  // if name == 'path1' or name == 'path2' or name == 'path3' or name == 'path4'
 	  //     layer.style['border'] = '1px solid green'
 	  //     console.log layer.image
+	  //     console.log node.outerHTML
+	  //     console.log '___'
 
 	  // continue traversing
 	  if (!skipChildren) {
-	    ref3 = node.children;
+	    ref4 = node.children;
 	    results = [];
-	    for (i = p = 0, len6 = ref3.length; p < len6; i = ++p) {
-	      child = ref3[i];
+	    for (i = r = 0, len8 = ref4.length; r < len8; i = ++r) {
+	      child = ref4[i];
 	      results.push(traverse(child, node, createdLayer != null ? createdLayer : {
 	        createdLayer: null
 	      }));
