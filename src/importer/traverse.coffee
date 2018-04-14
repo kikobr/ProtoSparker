@@ -379,9 +379,28 @@ module.exports = traverse = (node, parent, parentLayer) ->
         layerParams.clip = true
 
     # creating Framer layer
-    layer = new Layer layerParams
-    if parentLayer then layer.parent = parentLayer
-    createdLayer = layer
+    if node.id and node.getAttribute('name')
+        ###
+            There's a bug when loading multiple SVG's whose defs contents are
+            repeated ids. xlink:href can't link to the right path. Maybe the
+            solution would be trying to isolate these SVGs? creating an external
+            file for each one?
+        ###
+        layerParams.image = ''
+        for child, index in layerSvg.children
+            if not child.nodeName.match(/defs/gi) and child.nodeName != 'style'
+                if child.id then child.setAttribute 'name', child.id
+                else
+                    child.id = index
+                    child.setAttribute 'name', index
+        layerParams.svg = layerSvg.outerHTML.replace(/\n|\t/g, ' ')
+        layer = new SVGLayer layerParams
+        if parentLayer then layer.parent = parentLayer
+        createdLayer = layer
+    else
+        layer = new Layer layerParams
+        if parentLayer then layer.parent = parentLayer
+        createdLayer = layer
 
     # if name == 'path1' or name == 'path2' or name == 'path3' or name == 'path4'
     #     layer.style['border'] = '1px solid green'

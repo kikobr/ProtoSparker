@@ -279,7 +279,7 @@ var PS = (function (exports) {
 	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1, getMatrixTransform: getMatrixTransform$1} = utils);
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var ancestor, ancestorT, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, currentStyle, def, defs, fill, fillSelector, filter, filterClone, filterSelector, g, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, len5, len6, len7, len8, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, parentNodeBBox, path, q, qt, r, ref, ref1, ref2, ref3, ref4, results, rotate, rotateX, rotateY, scaleX, scaleY, skipChildren, strokeWidth, style, svg, t, tX, tY, toX, toY, url, use, useBBox, useBounds, viewBox;
+	  var ancestor, ancestorT, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, currentStyle, def, defs, fill, fillSelector, filter, filterClone, filterSelector, g, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, len5, len6, len7, len8, len9, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, parentNodeBBox, path, q, qt, r, ref, ref1, ref2, ref3, ref4, ref5, results, rotate, rotateX, rotateY, s, scaleX, scaleY, skipChildren, strokeWidth, style, svg, t, tX, tY, toX, toY, url, use, useBBox, useBounds, viewBox;
 	  // ignoring
 	  if (node.nodeName === 'mask' || node.nodeName === 'clipPath' || node.nodeName === 'use' && node.parentNode.children.length === 1) {
 	    return false;
@@ -677,11 +677,39 @@ var PS = (function (exports) {
 	    layerParams.clip = true;
 	  }
 	  // creating Framer layer
-	  layer = new Layer(layerParams);
-	  if (parentLayer) {
-	    layer.parent = parentLayer;
+	  if (node.id && node.getAttribute('name')) {
+	    /*
+	        There's a bug when loading multiple SVG's whose defs contents are
+	        repeated ids. xlink:href can't link to the right path. Maybe the
+	        solution would be trying to isolate these SVGs? creating an external
+	        file for each one?
+	    */
+	    layerParams.image = '';
+	    ref4 = layerSvg.children;
+	    for (index = r = 0, len8 = ref4.length; r < len8; index = ++r) {
+	      child = ref4[index];
+	      if (!child.nodeName.match(/defs/gi) && child.nodeName !== 'style') {
+	        if (child.id) {
+	          child.setAttribute('name', child.id);
+	        } else {
+	          child.id = index;
+	          child.setAttribute('name', index);
+	        }
+	      }
+	    }
+	    layerParams.svg = layerSvg.outerHTML.replace(/\n|\t/g, ' ');
+	    layer = new SVGLayer(layerParams);
+	    if (parentLayer) {
+	      layer.parent = parentLayer;
+	    }
+	    createdLayer = layer;
+	  } else {
+	    layer = new Layer(layerParams);
+	    if (parentLayer) {
+	      layer.parent = parentLayer;
+	    }
+	    createdLayer = layer;
 	  }
-	  createdLayer = layer;
 	  // if name == 'path1' or name == 'path2' or name == 'path3' or name == 'path4'
 	  //     layer.style['border'] = '1px solid green'
 	  //     console.log layer.image
@@ -690,10 +718,10 @@ var PS = (function (exports) {
 
 	  // continue traversing
 	  if (!skipChildren) {
-	    ref4 = node.children;
+	    ref5 = node.children;
 	    results = [];
-	    for (i = r = 0, len8 = ref4.length; r < len8; i = ++r) {
-	      child = ref4[i];
+	    for (i = s = 0, len9 = ref5.length; s < len9; i = ++s) {
+	      child = ref5[i];
 	      results.push(traverse(child, node, createdLayer != null ? createdLayer : {
 	        createdLayer: null
 	      }));
