@@ -15,7 +15,7 @@ You just have to name your layers following some conventions (see references bel
 Open your layout inside Figma or Sketch and rename the layers you want to interact with using the References as a guideline. Try adding a scrollable layer by renaming a group layer to "scroll".
 
 - Import this project inside Framer.js
-- Download protoSparker.coffee and place it into your project/modules folder.
+- Download `dist/ProtoSparker.js` and place it into your project/modules folder.
 - Import protoSparker module inside your project's file and instantiate it:
 
 ```coffeescript
