@@ -159,6 +159,9 @@ protoSparker = new ProtoSparker
                     "color": "#CBCACA"
 ```
 
+### hints (Boolean: false) ###
+If set to true, shows outline hints to help user know where she can interact with.
+
 ---
 
 ## Naming conventions

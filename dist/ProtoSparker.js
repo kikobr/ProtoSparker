@@ -240,7 +240,7 @@ var PS = (function (exports) {
 	  return this.svgContainer.insertAdjacentElement('afterbegin', importNode);
 	};
 
-	var style = "html, body {\n    margin: 0;\n    padding: 0;\n}\n#ps-importer-container {\n    visibility: hidden;\n    display: block;\n    position: relative;\n    z-index: 999;\n}\n#ps-importer-container.hidden {\n    display: none;\n}\n#ps-importer-container [data-import-id] {\n    position: absolute;\n    top: 0;\n    left: 0;\n    z-index: 1;\n}\n#ps-importer-container [data-import-id].active {\n    z-index: 2;\n    position: relative;\n}\n/* fix for when framer layers are bigger than screen */\n.framerContext { overflow: hidden; }\n.framerLayer svg { pointer-events: none; }\n/* override framer empty svg width and height that may mess up actions layers */\n.framerLayer svg:not([width]) { width: auto; }\n.framerLayer svg:not([height]) { height: auto; }";
+	var style = "html, body {\n    margin: 0;\n    padding: 0;\n}\nbody {\n    overflow-y: hidden; /* preventing chrome pull to refresh */\n}\n#ps-importer-container {\n    visibility: hidden;\n    display: block;\n    position: relative;\n    z-index: 999;\n}\n#ps-importer-container.hidden {\n    display: none;\n}\n#ps-importer-container [data-import-id] {\n    position: absolute;\n    top: 0;\n    left: 0;\n    z-index: 1;\n}\n#ps-importer-container [data-import-id].active {\n    z-index: 2;\n    position: relative;\n}\n/* fix for when framer layers are bigger than screen */\n.framerContext { overflow: hidden; }\n.framerLayer svg { pointer-events: none; }\n/* override framer empty svg width and height that may mess up actions layers */\n.framerLayer svg:not([width]) { width: auto; }\n.framerLayer svg:not([height]) { height: auto; }";
 
 	var svgContainerStyle;
 
@@ -5519,7 +5519,7 @@ var PS = (function (exports) {
 	var ProtoSparker = (function() {
 	  class ProtoSparker {
 	    constructor(options1 = {}) {
-	      var all, base, base1, base2, bg, default_h, default_w, hRatio, hackedScreenHeight, ratio, screen_height, screen_width, vRatio;
+	      var all, base, base1, base2, base3, bg, default_h, default_w, hRatio, hackedScreenHeight, ratio, screen_height, screen_width, vRatio;
 	      this.options = options1;
 	      // Opts
 	      if ((base = this.options).firstPage == null) {
@@ -5528,12 +5528,18 @@ var PS = (function (exports) {
 	      if (typeof this.options.firstPage === 'string') {
 	        this.options.firstPage = f$1(this.options.firstPage);
 	      }
-	      if ((base1 = this.options).textField == null) {
-	        base1.textField = {};
+	      if ((base1 = this.options).hints == null) {
+	        base1.hints = false;
+	      }
+	      if (!this.options.hints) {
+	        Framer.Extras.Hints.disable();
+	      }
+	      if ((base2 = this.options).textField == null) {
+	        base2.textField = {};
 	      }
 	      this.options.textField = merge$1(this.defaultTextField, this.options.textField);
-	      if ((base2 = this.options).selectField == null) {
-	        base2.selectField = {};
+	      if ((base3 = this.options).selectField == null) {
+	        base3.selectField = {};
 	      }
 	      this.options.selectField = merge$1(this.defaultSelectField, this.options.selectField);
 	      this.actions = [

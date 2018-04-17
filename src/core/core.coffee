@@ -105,6 +105,9 @@ class exports.ProtoSparker
 		if typeof @options.firstPage == 'string'
 			@options.firstPage = f(@options.firstPage)
 
+		@options.hints ?= false
+		if not @options.hints then Framer.Extras.Hints.disable()
+
 		@options.textField ?= {}
 		@options.textField = merge @defaultTextField, @options.textField
 

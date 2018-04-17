@@ -3,6 +3,9 @@ module.exports = """
         margin: 0;
         padding: 0;
     }
+    body {
+        overflow-y: hidden; /* preventing chrome pull to refresh */
+    }
     #ps-importer-container {
         visibility: hidden;
         display: block;
