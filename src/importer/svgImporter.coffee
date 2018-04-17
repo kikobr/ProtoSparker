@@ -7,10 +7,14 @@ class exports.SvgImporter
     type: 'svg'
     loading: false
     svgContainer: null
+    files: []
+    editableSvg: false
     setupContainer: setupContainer
+    layerCount: 0,
 
-    constructor: (@options={ files: [] }) ->
-        @files ?= @options.files
+    constructor: (@options={ files: [], editableSvg: false }) ->
+        @files = @options.files
+        @editableSvg = @options.editableSvg
         return false if not @files
         @loading = true
         @setupContainer()
@@ -25,9 +29,9 @@ class exports.SvgImporter
         # traversing
         if hasRootG
             for svgEl in svgTraverseEl
-                traverse svgEl
+                traverse.call this, svgEl
         else
-            traverse document.querySelector "[data-import-id='#{index}'] svg"
+            traverse.call this, document.querySelector "[data-import-id='#{index}'] svg"
 
         if index == @files.length - 1
             @loading = false

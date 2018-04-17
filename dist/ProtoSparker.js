@@ -240,7 +240,7 @@ var PS = (function (exports) {
 	  return this.svgContainer.insertAdjacentElement('afterbegin', importNode);
 	};
 
-	var style = "html, body {\n    margin: 0;\n    padding: 0;\n}\n#ps-importer-container {\n    visibility: hidden;\n    display: block;\n    position: relative;\n    z-index: 999;\n}\n#ps-importer-container.hidden {\n    display: none;\n}\n#ps-importer-container [data-import-id] {\n    position: absolute;\n    top: 0;\n    left: 0;\n    z-index: 1;\n}\n#ps-importer-container [data-import-id].active {\n    z-index: 2;\n    position: relative;\n}\n/* fix for when framer layers are bigger than screen */\n.framerContext { overflow: hidden; }";
+	var style = "html, body {\n    margin: 0;\n    padding: 0;\n}\n#ps-importer-container {\n    visibility: hidden;\n    display: block;\n    position: relative;\n    z-index: 999;\n}\n#ps-importer-container.hidden {\n    display: none;\n}\n#ps-importer-container [data-import-id] {\n    position: absolute;\n    top: 0;\n    left: 0;\n    z-index: 1;\n}\n#ps-importer-container [data-import-id].active {\n    z-index: 2;\n    position: relative;\n}\n/* fix for when framer layers are bigger than screen */\n.framerContext { overflow: hidden; }\n.framerLayer svg { pointer-events: none; }\n/* override framer empty svg width and height that may mess up actions layers */\n.framerLayer svg:not([width]) { width: auto; }\n.framerLayer svg:not([height]) { height: auto; }";
 
 	var svgContainerStyle;
 
@@ -279,7 +279,7 @@ var PS = (function (exports) {
 	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1, getMatrixTransform: getMatrixTransform$1} = utils);
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var ancestor, ancestorT, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, currentStyle, def, defs, fill, fillSelector, filter, filterClone, filterSelector, g, i, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len2, len3, len4, len5, len6, len7, len8, len9, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, parentNodeBBox, path, q, qt, r, ref, ref1, ref2, ref3, ref4, ref5, results, rotate, rotateX, rotateY, s, scaleX, scaleY, skipChildren, strokeWidth, style, svg, t, tX, tY, toX, toY, url, use, useBBox, useBounds, viewBox;
+	  var ancestor, ancestorT, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, currentStyle, def, defs, el, fill, fillSelector, filter, filterClone, filterSelector, g, i, id, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len10, len11, len12, len13, len2, len3, len4, len5, len6, len7, len8, len9, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, parentNodeBBox, path, q, qt, r, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8, results, rotate, rotateX, rotateY, s, scaleX, scaleY, skipChildren, strokeWidth, style, svg, svgIds, svgStr, t, tX, tY, toX, toY, u, url, use, useBBox, useBounds, v, viewBox, w, x;
 	  // ignoring
 	  if (node.nodeName === 'mask' || node.nodeName === 'clipPath' || node.nodeName === 'use' && node.parentNode.children.length === 1) {
 	    return false;
@@ -296,9 +296,11 @@ var PS = (function (exports) {
 	    });
 	  }
 	  // main variables
+	  this.layerCount += 1;
 	  viewBox = getViewBox$2(node);
 	  createdLayer = null;
 	  svg = node.closest('svg');
+	  svgStr = '';
 	  nodeBounds = node.getBoundingClientRect();
 	  nodeBBox = node.getBBox ? node.getBBox() : {
 	    x: 0,
@@ -325,8 +327,8 @@ var PS = (function (exports) {
 	    y: nodeBounds.y || nodeBounds.top,
 	    originX: 0.5,
 	    originY: 0.5,
-	    width: nodeBBox.width,
-	    height: nodeBBox.height
+	    width: nodeBBox.width || nodeBounds.width,
+	    height: nodeBBox.height || nodeBounds.height
 	  };
 	  // calculates relative position from parent's absolute position
 	  if (parentLayer) {
@@ -348,8 +350,8 @@ var PS = (function (exports) {
 	  // if node.nodeName == 'g' and node.querySelectorAll(':scope > circle').length == node.children.length then skipChildren = true
 	  if (node.nodeName === 'g' && node.children.length === 1 && node.children[0].nodeName === 'use') {
 	    use = node.children[0];
-	    layerSvg.setAttribute('width', nodeBBox.width);
-	    layerSvg.setAttribute('height', nodeBBox.height);
+	    layerSvg.setAttribute('width', nodeBBox.width || nodeBounds.width);
+	    layerSvg.setAttribute('height', nodeBBox.height || nodeBounds.height);
 	    defs = getUseDefs$1(use);
 	    if (defs) {
 	      for (j = 0, len = defs.length; j < len; j++) {
@@ -393,8 +395,8 @@ var PS = (function (exports) {
 	    layerSvg.insertAdjacentElement('afterbegin', inner);
 	  }
 	  if (node.nodeName === 'use') {
-	    layerSvg.setAttribute('width', nodeBBox.width);
-	    layerSvg.setAttribute('height', nodeBBox.height);
+	    layerSvg.setAttribute('width', nodeBBox.width || nodeBounds.width);
+	    layerSvg.setAttribute('height', nodeBBox.height || nodeBounds.height);
 	    defs = getUseDefs$1(node);
 	    if (defs) {
 	      for (k = 0, len1 = defs.length; k < len1; k++) {
@@ -442,8 +444,8 @@ var PS = (function (exports) {
 	    [scaleX, scaleY] = [1, 1];
 	    toX = nodeBBox.width / 2;
 	    toY = nodeBBox.height / 2;
-	    layerSvg.setAttribute('width', nodeBBox.width);
-	    layerSvg.setAttribute('height', nodeBBox.height);
+	    layerSvg.setAttribute('width', nodeBBox.width || nodeBounds.width);
+	    layerSvg.setAttribute('height', nodeBBox.height || nodeBounds.height);
 	    defs = getUseDefs$1(node);
 	    if (defs) {
 	      for (l = 0, len2 = defs.length; l < len2; l++) {
@@ -499,11 +501,20 @@ var PS = (function (exports) {
 	      fill = svg.querySelector(fillSelector);
 	      layerSvg.querySelector('defs').insertAdjacentElement('beforeend', fill.cloneNode(true));
 	    }
+	    if (node.nodeName !== 'mask' && node.nodeName !== 'clip-path' && computedStyle.fill && !node.hasAttribute('fill')) {
+	      ref = layerSvg.children;
+	      for (m = 0, len3 = ref.length; m < len3; m++) {
+	        child = ref[m];
+	        if (child.nodeName === node.nodeName) {
+	          child.setAttribute('fill', computedStyle.fill);
+	        }
+	      }
+	    }
 	  } else {
-	    ref = layerSvg.children;
+	    ref1 = layerSvg.children;
 	    // get node inside layerSvg and set a fill transparent
-	    for (m = 0, len3 = ref.length; m < len3; m++) {
-	      child = ref[m];
+	    for (n = 0, len4 = ref1.length; n < len4; n++) {
+	      child = ref1[n];
 	      if (child.nodeName === node.nodeName) {
 	        child.setAttribute('fill', 'transparent');
 	      }
@@ -566,10 +577,10 @@ var PS = (function (exports) {
 	    filter = svg.querySelector(filterSelector);
 	    filterClone = filter.cloneNode(true);
 	    layerSvg.querySelector('defs').insertAdjacentElement('beforeend', filterClone);
-	    ref1 = layerSvg.children;
+	    ref2 = layerSvg.children;
 	    // since filter is not working yet, disable it
-	    for (n = 0, len4 = ref1.length; n < len4; n++) {
-	      child = ref1[n];
+	    for (o = 0, len5 = ref2.length; o < len5; o++) {
+	      child = ref2[o];
 	      if (child.nodeName === node.nodeName) {
 	        child.removeAttribute('filter');
 	      }
@@ -585,13 +596,13 @@ var PS = (function (exports) {
 	      use = node.children[0];
 	      useBBox = use.getBBox();
 	    }
-	    ref2 = mask.querySelectorAll('*');
-	    for (index = o = 0, len5 = ref2.length; o < len5; index = ++o) {
-	      child = ref2[index];
+	    ref3 = mask.querySelectorAll('*');
+	    for (index = p = 0, len6 = ref3.length; p < len6; index = ++p) {
+	      child = ref3[index];
 	      if (child.nodeName === 'use' || child.nodeName === 'rect' || child.nodeName === 'path') {
 	        defs = getUseDefs$1(child);
-	        for (p = 0, len6 = defs.length; p < len6; p++) {
-	          def = defs[p];
+	        for (q = 0, len7 = defs.length; q < len7; q++) {
+	          def = defs[q];
 	          layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def);
 	        }
 	        childBBox = child.getBBox();
@@ -628,10 +639,10 @@ var PS = (function (exports) {
 	        childClone.setAttribute('style', `${currentStyle}; transform-origin: ${toX + rotateX}px ${toY + rotateY}px; transform: translate(${childTx}px, ${childTy}px) rotate(${rotate}deg) scale(${scaleX}, ${scaleY});`);
 	      }
 	    }
-	    ref3 = layerSvg.children;
+	    ref4 = layerSvg.children;
 	    // apply mask attribute if node does not already have it
-	    for (q = 0, len7 = ref3.length; q < len7; q++) {
-	      child = ref3[q];
+	    for (r = 0, len8 = ref4.length; r < len8; r++) {
+	      child = ref4[r];
 	      if (child.nodeName === node.nodeName) {
 	        if (node.hasAttribute('transform')) {
 	          // encapsulate with g if the layer has a transform, so that the mask isnt affected
@@ -657,8 +668,8 @@ var PS = (function (exports) {
 	    }
 	  }
 	  if (node.nodeName === 'line') {
-	    layerSvg.removeAttribute('height');
 	    strokeWidth = computedStyle['stroke-width'] ? parseFloat(computedStyle['stroke-width'].replace('px', '')) : 1;
+	    layerSvg.setAttribute('height', strokeWidth);
 	    layerParams.height += strokeWidth;
 	  }
 	  /*
@@ -676,33 +687,70 @@ var PS = (function (exports) {
 	    layerParams.height = nodeBounds.height;
 	    layerParams.clip = true;
 	  }
-	  // creating Framer layer
-	  if (node.id && node.getAttribute('name')) {
+	  // editableSvg makes it possible to edit the svg slices via Framer svg api
+	  if (this.editableSvg) {
 	    /*
 	        There's a bug when loading multiple SVG's whose defs contents are
-	        repeated ids. xlink:href can't link to the right path. Maybe the
-	        solution would be trying to isolate these SVGs? creating an external
-	        file for each one?
+	        repeated ids. xlink:href can't link to the right path.
+
+	        The solution was to apply unique IDs to each new svg generated.
 	    */
+	    if (!layerSvg.hasAttribute('width')) {
+	      layerSvg.setAttribute('width', 0);
+	    }
+	    if (!layerSvg.hasAttribute('height')) {
+	      layerSvg.setAttribute('height', 0);
+	    }
 	    layerParams.image = '';
-	    ref4 = layerSvg.children;
-	    for (index = r = 0, len8 = ref4.length; r < len8; index = ++r) {
-	      child = ref4[index];
+	    ref5 = layerSvg.children;
+	    for (index = s = 0, len9 = ref5.length; s < len9; index = ++s) {
+	      child = ref5[index];
+	      // getting valid children (those that are not defs / style tags)
 	      if (!child.nodeName.match(/defs/gi) && child.nodeName !== 'style') {
+	        // Apply ids and 'name's so that framer can treat them as editable paths
 	        if (child.id) {
 	          child.setAttribute('name', child.id);
 	        } else {
-	          child.id = index;
-	          child.setAttribute('name', index);
+	          child.id = `layer_${this.layerCount}`;
+	          child.setAttribute('name', `layer_${this.layerCount}`);
+	        }
+	        // Since framer forces an opacity:1 to path elements, we assure this
+	        // opacity will be applied to the root svg
+	        if (child.style.opacity) {
+	          layerSvg.style.opacity = child.style.opacity;
+	        } else if (child.nodeName === 'g' && child.children.length === 1 && child.children[0].style.opacity) {
+	          layerSvg.style.opacity = child.children[0].style.opacity;
 	        }
 	      }
 	    }
-	    layerParams.svg = layerSvg.outerHTML.replace(/\n|\t/g, ' ');
+	    svgIds = [];
+	    ref6 = layerSvg.querySelectorAll('[id]');
+	    for (u = 0, len10 = ref6.length; u < len10; u++) {
+	      def = ref6[u];
+	      svgIds.push(def.id);
+	    }
+	    svgStr = layerSvg.outerHTML.replace(/\n|\t/g, ' ');
+	    // replacing prior id references to the new unique ids.
+	    // TODO: create a clean RegExp that accounts for '," and # at the same time
+	    if (svgIds.length && this.layerCount) {
+	      for (v = 0, len11 = svgIds.length; v < len11; v++) {
+	        id = svgIds[v];
+	        svgStr = svgStr.replace(new RegExp("&quot;", "g"), "").replace(new RegExp(`url\\(\#${id}\\)`, "g"), `url(#${id}_${this.layerCount})`).replace(new RegExp(`url\\(${id}\\)`, "g"), `url(${id}_${this.layerCount})`).replace(new RegExp(`id=\\"${id}\\"`, "g"), `id="${id}_${this.layerCount}"`).replace(new RegExp(`id=\\'${id}\'`, "g"), `id=\'${id}_${this.layerCount}\'`).replace(new RegExp(`xlink:href=\\"\#${id}\\"`, "g"), `xlink:href="#${id}_${this.layerCount}"`).replace(new RegExp(`xlink:href=\\'#${id}\\'`, "g"), `xlink:href=\'#${id}_${this.layerCount}\'`).replace(new RegExp(`xlink:href=\\"${id}\\"`, "g"), `xlink:href="${id}_${this.layerCount}"`).replace(new RegExp(`xlink:href=\\'${id}\\'`, "g"), `xlink:href=\'${id}_${this.layerCount}\'`);
+	        this.layerCount += 1;
+	      }
+	    }
+	    layerParams.svg = svgStr;
 	    layer = new SVGLayer(layerParams);
 	    if (parentLayer) {
 	      layer.parent = parentLayer;
 	    }
 	    createdLayer = layer;
+	    ref7 = layer.svg.querySelectorAll('[style]');
+	    // framer svg setup sets opacity to 1, this overrides any class that is applied
+	    for (w = 0, len12 = ref7.length; w < len12; w++) {
+	      el = ref7[w];
+	      el.style.opacity = null;
+	    }
 	  } else {
 	    layer = new Layer(layerParams);
 	    if (parentLayer) {
@@ -718,11 +766,11 @@ var PS = (function (exports) {
 
 	  // continue traversing
 	  if (!skipChildren) {
-	    ref5 = node.children;
+	    ref8 = node.children;
 	    results = [];
-	    for (i = s = 0, len9 = ref5.length; s < len9; i = ++s) {
-	      child = ref5[i];
-	      results.push(traverse(child, node, createdLayer != null ? createdLayer : {
+	    for (i = x = 0, len13 = ref8.length; x < len13; i = ++x) {
+	      child = ref8[i];
+	      results.push(traverse.call(this, child, node, createdLayer != null ? createdLayer : {
 	        createdLayer: null
 	      }));
 	    }
@@ -741,13 +789,13 @@ var PS = (function (exports) {
 	var SvgImporter = (function() {
 	  class SvgImporter {
 	    constructor(options = {
-	        files: []
+	        files: [],
+	        editableSvg: false
 	      }) {
 	      var file, i, index, len, ref;
 	      this.options = options;
-	      if (this.files == null) {
-	        this.files = this.options.files;
-	      }
+	      this.files = this.options.files;
+	      this.editableSvg = this.options.editableSvg;
 	      if (!this.files) {
 	        return false;
 	      }
@@ -770,10 +818,10 @@ var PS = (function (exports) {
 	      if (hasRootG) {
 	        for (i = 0, len = svgTraverseEl.length; i < len; i++) {
 	          svgEl = svgTraverseEl[i];
-	          traverse$1(svgEl);
+	          traverse$1.call(this, svgEl);
 	        }
 	      } else {
-	        traverse$1(document.querySelector(`[data-import-id='${index}'] svg`));
+	        traverse$1.call(this, document.querySelector(`[data-import-id='${index}'] svg`));
 	      }
 	      if (index === this.files.length - 1) {
 	        return this.loading = false;
@@ -787,7 +835,13 @@ var PS = (function (exports) {
 
 	  SvgImporter.prototype.svgContainer = null;
 
+	  SvgImporter.prototype.files = [];
+
+	  SvgImporter.prototype.editableSvg = false;
+
 	  SvgImporter.prototype.setupContainer = setupContainer$1;
+
+	  SvgImporter.prototype.layerCount = 0;
 
 	  return SvgImporter;
 

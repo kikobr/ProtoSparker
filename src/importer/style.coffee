@@ -24,4 +24,8 @@ module.exports = """
     }
     /* fix for when framer layers are bigger than screen */
     .framerContext { overflow: hidden; }
+    .framerLayer svg { pointer-events: none; }
+    /* override framer empty svg width and height that may mess up actions layers */
+    .framerLayer svg:not([width]) { width: auto; }
+    .framerLayer svg:not([height]) { height: auto; }
 """

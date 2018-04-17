@@ -16,6 +16,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
             else el.classList.remove 'active'
 
     # main variables
+    @layerCount += 1
     viewBox = getViewBox node
     createdLayer = null
     svg = node.closest 'svg'
@@ -44,8 +45,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
         y: (nodeBounds.y or nodeBounds.top)
         originX: 0.5,
         originY: 0.5,
-        width: nodeBBox.width
-        height: nodeBBox.height
+        width: nodeBBox.width or nodeBounds.width
+        height: nodeBBox.height or nodeBounds.height
 
     # calculates relative position from parent's absolute position
     if parentLayer
@@ -70,8 +71,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
     if node.nodeName == 'g' and node.children.length == 1 and node.children[0].nodeName == 'use'
         use = node.children[0]
-        layerSvg.setAttribute 'width', nodeBBox.width
-        layerSvg.setAttribute 'height', nodeBBox.height
+        layerSvg.setAttribute 'width', nodeBBox.width or nodeBounds.width
+        layerSvg.setAttribute 'height', nodeBBox.height or nodeBounds.height
         defs = getUseDefs use
         if defs then layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def) for def in defs
         useBBox = use.getBBox()
@@ -112,8 +113,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
         layerSvg.insertAdjacentElement 'afterbegin', inner
 
     if node.nodeName == 'use'
-        layerSvg.setAttribute 'width', nodeBBox.width
-        layerSvg.setAttribute 'height', nodeBBox.height
+        layerSvg.setAttribute 'width', nodeBBox.width or nodeBounds.width
+        layerSvg.setAttribute 'height', nodeBBox.height or nodeBounds.height
         defs = getUseDefs node
         if defs then layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def) for def in defs
         tX = -nodeBBox.x
@@ -159,8 +160,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
         [scaleX, scaleY] = [1,1]
         toX = (nodeBBox.width / 2)
         toY = (nodeBBox.height / 2)
-        layerSvg.setAttribute 'width', nodeBBox.width
-        layerSvg.setAttribute 'height', nodeBBox.height
+        layerSvg.setAttribute 'width', nodeBBox.width or nodeBounds.width
+        layerSvg.setAttribute 'height', nodeBBox.height or nodeBounds.height
 
         defs = getUseDefs node
         if defs then layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def) for def in defs
@@ -212,6 +213,10 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
             fill = svg.querySelector fillSelector
             layerSvg.querySelector('defs').insertAdjacentElement 'beforeend', fill.cloneNode(true)
+        if node.nodeName != 'mask' and node.nodeName != 'clip-path' and computedStyle.fill and not node.hasAttribute 'fill'
+            for child in layerSvg.children
+                if child.nodeName == node.nodeName
+                    child.setAttribute 'fill', computedStyle.fill
     else
         # get node inside layerSvg and set a fill transparent
         for child in layerSvg.children
@@ -354,8 +359,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
         if style then layerSvg.querySelector('defs').insertAdjacentElement 'afterbegin', style.cloneNode(true)
 
     if node.nodeName == 'line'
-        layerSvg.removeAttribute 'height'
         strokeWidth = if computedStyle['stroke-width'] then parseFloat computedStyle['stroke-width'].replace('px','') else 1
+        layerSvg.setAttribute 'height', strokeWidth
         layerParams.height += strokeWidth
 
     ###
@@ -378,25 +383,57 @@ module.exports = traverse = (node, parent, parentLayer) ->
         layerParams.height = nodeBounds.height
         layerParams.clip = true
 
-    # creating Framer layer
-    if node.id and node.getAttribute('name')
+    # editableSvg makes it possible to edit the svg slices via Framer svg api
+    if @editableSvg
         ###
             There's a bug when loading multiple SVG's whose defs contents are
-            repeated ids. xlink:href can't link to the right path. Maybe the
-            solution would be trying to isolate these SVGs? creating an external
-            file for each one?
+            repeated ids. xlink:href can't link to the right path.
+
+            The solution was to apply unique IDs to each new svg generated.
         ###
+        if not layerSvg.hasAttribute 'width' then layerSvg.setAttribute 'width', 0
+        if not layerSvg.hasAttribute 'height' then layerSvg.setAttribute 'height', 0
         layerParams.image = ''
         for child, index in layerSvg.children
+            # getting valid children (those that are not defs / style tags)
             if not child.nodeName.match(/defs/gi) and child.nodeName != 'style'
+                # Apply ids and 'name's so that framer can treat them as editable paths
                 if child.id then child.setAttribute 'name', child.id
                 else
-                    child.id = index
-                    child.setAttribute 'name', index
-        layerParams.svg = layerSvg.outerHTML.replace(/\n|\t/g, ' ')
+                    child.id = "layer_#{@layerCount}"
+                    child.setAttribute 'name', "layer_#{@layerCount}"
+                # Since framer forces an opacity:1 to path elements, we assure this
+                # opacity will be applied to the root svg
+                if child.style.opacity
+                    layerSvg.style.opacity = child.style.opacity
+                else if child.nodeName == 'g' and child.children.length == 1 and child.children[0].style.opacity
+                    layerSvg.style.opacity = child.children[0].style.opacity
+        svgIds = []
+        for def in layerSvg.querySelectorAll('[id]')
+            svgIds.push def.id
+        svgStr = layerSvg.outerHTML.replace(/\n|\t/g, ' ')
+        # replacing prior id references to the new unique ids.
+        # TODO: create a clean RegExp that accounts for '," and # at the same time
+        if svgIds.length and @layerCount
+            for id in svgIds
+                svgStr = svgStr.replace new RegExp("&quot;", "g"), ""
+                    .replace new RegExp("url\\(\##{id}\\)", "g"), "url(##{id}_#{@layerCount})"
+                    .replace new RegExp("url\\(#{id}\\)", "g"), "url(#{id}_#{@layerCount})"
+                    .replace new RegExp("id=\\\"#{id}\\\"", "g"), "id=\"#{id}_#{@layerCount}\""
+                    .replace new RegExp("id=\\'#{id}\'", "g"), "id=\'#{id}_#{@layerCount}\'"
+                    .replace new RegExp("xlink:href=\\\"\##{id}\\\"", "g"), "xlink:href=\"##{id}_#{@layerCount}\""
+                    .replace new RegExp("xlink:href=\\'##{id}\\'", "g"), "xlink:href=\'##{id}_#{@layerCount}\'"
+                    .replace new RegExp("xlink:href=\\\"#{id}\\\"", "g"), "xlink:href=\"#{id}_#{@layerCount}\""
+                    .replace new RegExp("xlink:href=\\'#{id}\\'", "g"), "xlink:href=\'#{id}_#{@layerCount}\'"
+                @layerCount += 1
+        layerParams.svg = svgStr
+
         layer = new SVGLayer layerParams
         if parentLayer then layer.parent = parentLayer
         createdLayer = layer
+        # framer svg setup sets opacity to 1, this overrides any class that is applied
+        for el in layer.svg.querySelectorAll('[style]')
+            el.style.opacity = null
     else
         layer = new Layer layerParams
         if parentLayer then layer.parent = parentLayer
@@ -411,4 +448,4 @@ module.exports = traverse = (node, parent, parentLayer) ->
     # continue traversing
     if not skipChildren
         for child, i in node.children
-            traverse child, node, createdLayer ? createdLayer : null
+            traverse.call this, child, node, createdLayer ? createdLayer : null

@@ -76,7 +76,24 @@ You have to serve this page with an HTTP server so that our script can request y
 
 ---
 
-# References
+# SvgImporter Reference
+## Startup usage
+
+```coffeescript
+importer = new SvgImporter
+    editableSvg: false,
+    files: [ "img/page1.svg", "img/page2.svg" ]
+```
+
+### editableSvg (Boolean: false) ###
+If you enable this, the SVG slices will be imported using Framer built in SVG API. This enables you to modify the SVG paths directly. By now it's toggled off for testing purposes, soon this will be enabled by default.
+
+### files (Array) ###
+Here you pass the files you want to import into Framer. If this SVG doesn't contain a root group with an "id" or "data-name" (like an artboard), SVGImporter will set its Framer root layer name as the SVG filename.
+
+---
+
+# ProtoSparker Reference
 ## Startup options
 [Startup usage](#startup-usage) <br>
 [firstPage](#firstpage) <br>
@@ -99,17 +116,16 @@ You have to serve this page with an HTTP server so that our script can request y
 ---
 
 ## Startup usage
-Add properties to the object passed in the ProtoSparker instantiation
 ```coffeescript
 protoSparker = new ProtoSparker
     # this is the object
     firstPage: layer # this is the option
 ```
 
-### firstPage
+### firstPage (Layer)
 This is the layer that shows up when the prototype boots. You can navigate between layers using the [goto](#goto) action. This is **required**
 
-### textField
+### textField (Object)
 This option allows you to customize the HTML input created by [text-field](#textfield).
 ```coffeescript
 protoSparker = new ProtoSparker
@@ -126,7 +142,7 @@ protoSparker = new ProtoSparker
                     "color": "#CBCACA"
 ```
 
-### selectField ###
+### selectField (Object) ###
 This option allows you to customize the HTML selects created by [select-field](#selectfield).
 ```coffeescript
 protoSparker = new ProtoSparker
