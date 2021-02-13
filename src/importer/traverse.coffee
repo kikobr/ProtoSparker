@@ -224,7 +224,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
                 child.setAttribute 'fill', 'transparent'
 
     # some clip-paths are applied as classes
-    if not isFirefox and (node.hasAttribute('clip-path') or (computedStyle.clipPath and computedStyle.clipPath != 'none'))
+    if (not isFirefox) and (node.hasAttribute('clip-path') or (computedStyle.clipPath and computedStyle.clipPath != 'none'))
 
         url = node.getAttribute('clip-path') or computedStyle.clipPath
         # removes "" and ''
@@ -236,9 +236,11 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
         clipPath = svg.querySelector clipSelector
         clipPathInner = clipPath.querySelector(':scope > *') # path or rect usually
+        if !clipPath.children.length and node.children.length
+            clipPathInner = node.children[0]
         clipPathInnerBBox = null
 
-        clipPathBBox = clipPath.getBBox()
+        clipPathBBox = if typeof clipPath.getBBox == "function" then clipPath.getBBox() else clipPath.getBoundingClientRect()
         clipPathBounds = clipPath.getBoundingClientRect()
 
         # if there's a path inside clipPath, consider that to calculate position,
@@ -253,15 +255,23 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
         # bug? some layers come with a wrong getBoundingClientRect(), like x: -2000.
         # trying to simplify with 0.
-        if clipPathInner and clipPathInnerBBox and clipPathInnerBBox.x == 0 and clipPathInnerBBox.y == 0
-            layerParams.x = 0
-            layerParams.y = 0
-        else
-            layerParams.x = clipPathBounds.x or clipPathBounds.left
-            layerParams.y = clipPathBounds.y or clipPathBounds.top
-            if parentLayer
-                layerParams.x -= parentLayer.screenFrame.x
-                layerParams.y -= parentLayer.screenFrame.y
+        # if clipPathInner and clipPathInnerBBox
+        #     and clipPathInnerBBox.x == 0 and clipPathInnerBBox.y == 0
+        #     and clipPathBounds.x == 0 and clipPathBounds.y == 0
+        #     layerParams.x = 0
+        #     layerParams.y = 0
+        # else
+        #     layerParams.x = clipPathBounds.x or clipPathBounds.left
+        #     layerParams.y = clipPathBounds.y or clipPathBounds.top
+        #     if parentLayer
+        #         layerParams.x -= parentLayer.screenFrame.x
+        #         layerParams.y -= parentLayer.screenFrame.y
+
+        layerParams.x = clipPathBounds.x or clipPathBounds.left
+        layerParams.y = clipPathBounds.y or clipPathBounds.top
+        if parentLayer
+            layerParams.x -= parentLayer.screenFrame.x
+            layerParams.y -= parentLayer.screenFrame.y
 
         if qt
             layerParams.x += qt.translateX

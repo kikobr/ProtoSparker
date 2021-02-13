@@ -11,6 +11,8 @@ exports.getRootG = getRootG = (node) ->
     for child in svg.children
         if(not rootG and child.nodeName == 'g')
             rootG = child
+    if !rootG
+        rootG = svg
     return rootG
 
 exports.getUseDefs = getUseDefs = (node) ->

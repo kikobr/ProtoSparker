@@ -2,7 +2,7 @@
 var PS = (function (exports) {
 	'use strict';
 
-	var commonjsGlobal = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+	var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
 	function createCommonjsModule(fn, module) {
 		return module = { exports: {} }, fn(module, module.exports), module.exports;
@@ -33,6 +33,9 @@ var PS = (function (exports) {
 	    if (!rootG && child.nodeName === 'g') {
 	      rootG = child;
 	    }
+	  }
+	  if (!rootG) {
+	    rootG = svg;
 	  }
 	  return rootG;
 	};
@@ -240,7 +243,38 @@ var PS = (function (exports) {
 	  return this.svgContainer.insertAdjacentElement('afterbegin', importNode);
 	};
 
-	var style = "html, body {\n    margin: 0;\n    padding: 0;\n}\nbody {\n    overflow-y: hidden; /* preventing chrome pull to refresh */\n}\n#ps-importer-container {\n    visibility: hidden;\n    display: block;\n    position: relative;\n    z-index: 999;\n}\n#ps-importer-container.hidden {\n    display: none;\n}\n#ps-importer-container [data-import-id] {\n    position: absolute;\n    top: 0;\n    left: 0;\n    z-index: 1;\n}\n#ps-importer-container [data-import-id].active {\n    z-index: 2;\n    position: relative;\n}\n/* fix for when framer layers are bigger than screen */\n.framerContext { overflow: hidden; }\n.framerLayer svg { pointer-events: none; }\n/* override framer empty svg width and height that may mess up actions layers */\n.framerLayer svg:not([width]) { width: auto; }\n.framerLayer svg:not([height]) { height: auto; }";
+	var style = `html, body {
+    margin: 0;
+    padding: 0;
+}
+body {
+    overflow-y: hidden; /* preventing chrome pull to refresh */
+}
+#ps-importer-container {
+    visibility: hidden;
+    display: block;
+    position: relative;
+    z-index: 999;
+}
+#ps-importer-container.hidden {
+    display: none;
+}
+#ps-importer-container [data-import-id] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+#ps-importer-container [data-import-id].active {
+    z-index: 2;
+    position: relative;
+}
+/* fix for when framer layers are bigger than screen */
+.framerContext { overflow: hidden; }
+.framerLayer svg { pointer-events: none; }
+/* override framer empty svg width and height that may mess up actions layers */
+.framerLayer svg:not([width]) { width: auto; }
+.framerLayer svg:not([height]) { height: auto; }`;
 
 	var svgContainerStyle;
 
@@ -521,7 +555,7 @@ var PS = (function (exports) {
 	    }
 	  }
 	  // some clip-paths are applied as classes
-	  if (!isFirefox && (node.hasAttribute('clip-path') || (computedStyle.clipPath && computedStyle.clipPath !== 'none'))) {
+	  if ((!isFirefox) && (node.hasAttribute('clip-path') || (computedStyle.clipPath && computedStyle.clipPath !== 'none'))) {
 	    url = node.getAttribute('clip-path') || computedStyle.clipPath;
 	    // removes "" and ''
 	    url = url.replace('url("', 'url(').replace('url(\'', 'url(').replace(/\"\)$/, ')').replace(/\'\)$/, ')');
@@ -532,8 +566,11 @@ var PS = (function (exports) {
 	    }
 	    clipPath = svg.querySelector(clipSelector);
 	    clipPathInner = clipPath.querySelector(':scope > *'); // path or rect usually
+	    if (!clipPath.children.length && node.children.length) {
+	      clipPathInner = node.children[0];
+	    }
 	    clipPathInnerBBox = null;
-	    clipPathBBox = clipPath.getBBox();
+	    clipPathBBox = typeof clipPath.getBBox === "function" ? clipPath.getBBox() : clipPath.getBoundingClientRect();
 	    clipPathBounds = clipPath.getBoundingClientRect();
 	    // if there's a path inside clipPath, consider that to calculate position,
 	    // since in webkit there's some bugs with getBBox on hidden elements
@@ -546,16 +583,22 @@ var PS = (function (exports) {
 	    layerParams.height = clipPathBBox.height;
 	    // bug? some layers come with a wrong getBoundingClientRect(), like x: -2000.
 	    // trying to simplify with 0.
-	    if (clipPathInner && clipPathInnerBBox && clipPathInnerBBox.x === 0 && clipPathInnerBBox.y === 0) {
-	      layerParams.x = 0;
-	      layerParams.y = 0;
-	    } else {
-	      layerParams.x = clipPathBounds.x || clipPathBounds.left;
-	      layerParams.y = clipPathBounds.y || clipPathBounds.top;
-	      if (parentLayer) {
-	        layerParams.x -= parentLayer.screenFrame.x;
-	        layerParams.y -= parentLayer.screenFrame.y;
-	      }
+	    // if clipPathInner and clipPathInnerBBox
+	    //     and clipPathInnerBBox.x == 0 and clipPathInnerBBox.y == 0
+	    //     and clipPathBounds.x == 0 and clipPathBounds.y == 0
+	    //     layerParams.x = 0
+	    //     layerParams.y = 0
+	    // else
+	    //     layerParams.x = clipPathBounds.x or clipPathBounds.left
+	    //     layerParams.y = clipPathBounds.y or clipPathBounds.top
+	    //     if parentLayer
+	    //         layerParams.x -= parentLayer.screenFrame.x
+	    //         layerParams.y -= parentLayer.screenFrame.y
+	    layerParams.x = clipPathBounds.x || clipPathBounds.left;
+	    layerParams.y = clipPathBounds.y || clipPathBounds.top;
+	    if (parentLayer) {
+	      layerParams.x -= parentLayer.screenFrame.x;
+	      layerParams.y -= parentLayer.screenFrame.y;
 	    }
 	    if (qt) {
 	      layerParams.x += qt.translateX;
@@ -735,7 +778,7 @@ var PS = (function (exports) {
 	    if (svgIds.length && this.layerCount) {
 	      for (v = 0, len11 = svgIds.length; v < len11; v++) {
 	        id = svgIds[v];
-	        svgStr = svgStr.replace(new RegExp("&quot;", "g"), "").replace(new RegExp(`url\\(\#${id}\\)`, "g"), `url(#${id}_${this.layerCount})`).replace(new RegExp(`url\\(${id}\\)`, "g"), `url(${id}_${this.layerCount})`).replace(new RegExp(`id=\\"${id}\\"`, "g"), `id="${id}_${this.layerCount}"`).replace(new RegExp(`id=\\'${id}\'`, "g"), `id=\'${id}_${this.layerCount}\'`).replace(new RegExp(`xlink:href=\\"\#${id}\\"`, "g"), `xlink:href="#${id}_${this.layerCount}"`).replace(new RegExp(`xlink:href=\\'#${id}\\'`, "g"), `xlink:href=\'#${id}_${this.layerCount}\'`).replace(new RegExp(`xlink:href=\\"${id}\\"`, "g"), `xlink:href="${id}_${this.layerCount}"`).replace(new RegExp(`xlink:href=\\'${id}\\'`, "g"), `xlink:href=\'${id}_${this.layerCount}\'`);
+	        svgStr = svgStr.replace(new RegExp("&quot;", "g"), "").replace(new RegExp(`url\\(\#${id}\\)`, "g"), `url(#${id}_${this.layerCount})`).replace(new RegExp(`url\\(${id}\\)`, "g"), `url(${id}_${this.layerCount})`).replace(new RegExp(`id=\\\"${id}\\\"`, "g"), `id=\"${id}_${this.layerCount}\"`).replace(new RegExp(`id=\\'${id}\'`, "g"), `id=\'${id}_${this.layerCount}\'`).replace(new RegExp(`xlink:href=\\\"\#${id}\\\"`, "g"), `xlink:href=\"#${id}_${this.layerCount}\"`).replace(new RegExp(`xlink:href=\\'#${id}\\'`, "g"), `xlink:href=\'#${id}_${this.layerCount}\'`).replace(new RegExp(`xlink:href=\\\"${id}\\\"`, "g"), `xlink:href=\"${id}_${this.layerCount}\"`).replace(new RegExp(`xlink:href=\\'${id}\\'`, "g"), `xlink:href=\'${id}_${this.layerCount}\'`);
 	        this.layerCount += 1;
 	      }
 	    }
@@ -2050,10 +2093,11 @@ var PS = (function (exports) {
 	  if (arrLength != othLength && !(isPartial && othLength > arrLength)) {
 	    return false;
 	  }
-	  // Assume cyclic values are equal.
-	  var stacked = stack.get(array);
-	  if (stacked && stack.get(other)) {
-	    return stacked == other;
+	  // Check that cyclic values are equal.
+	  var arrStacked = stack.get(array);
+	  var othStacked = stack.get(other);
+	  if (arrStacked && othStacked) {
+	    return arrStacked == other && othStacked == array;
 	  }
 	  var index = -1,
 	      result = true,
@@ -2706,6 +2750,14 @@ var PS = (function (exports) {
 	/** Used to access faster Node.js helpers. */
 	var nodeUtil = (function() {
 	  try {
+	    // Use `util.types` for Node.js 10+.
+	    var types = freeModule && freeModule.require && freeModule.require('util').types;
+
+	    if (types) {
+	      return types;
+	    }
+
+	    // Legacy `process.binding('util')` for Node.js < 10.
 	    return freeProcess && freeProcess.binding && freeProcess.binding('util');
 	  } catch (e) {}
 	}());
@@ -2965,10 +3017,11 @@ var PS = (function (exports) {
 	      return false;
 	    }
 	  }
-	  // Assume cyclic values are equal.
-	  var stacked = stack.get(object);
-	  if (stacked && stack.get(other)) {
-	    return stacked == other;
+	  // Check that cyclic values are equal.
+	  var objStacked = stack.get(object);
+	  var othStacked = stack.get(other);
+	  if (objStacked && othStacked) {
+	    return objStacked == other && othStacked == object;
 	  }
 	  var result = true;
 	  stack.set(object, other);
@@ -4495,6 +4548,10 @@ var PS = (function (exports) {
 	 * // The `_.property` iteratee shorthand.
 	 * _.filter(users, 'active');
 	 * // => objects for ['barney']
+	 *
+	 * // Combining several predicates using `_.overEvery` or `_.overSome`.
+	 * _.filter(users, _.overSome([{ 'age': 36 }, ['age', 40]]));
+	 * // => objects for ['fred', 'barney']
 	 */
 	function filter(collection, predicate) {
 	  var func = isArray_1(collection) ? _arrayFilter : _baseFilter;
@@ -4880,7 +4937,7 @@ var PS = (function (exports) {
 	var isPlainObject_1 = isPlainObject;
 
 	/**
-	 * Gets the value at `key`, unless `key` is "__proto__".
+	 * Gets the value at `key`, unless `key` is "__proto__" or "constructor".
 	 *
 	 * @private
 	 * @param {Object} object The object to query.
@@ -4888,9 +4945,15 @@ var PS = (function (exports) {
 	 * @returns {*} Returns the property value.
 	 */
 	function safeGet(object, key) {
-	  return key == '__proto__'
-	    ? undefined
-	    : object[key];
+	  if (key === 'constructor' && typeof object[key] === 'function') {
+	    return;
+	  }
+
+	  if (key == '__proto__') {
+	    return;
+	  }
+
+	  return object[key];
 	}
 
 	var _safeGet = safeGet;
@@ -5129,7 +5192,7 @@ var PS = (function (exports) {
 	      if (isArguments_1(objValue)) {
 	        newValue = toPlainObject_1(objValue);
 	      }
-	      else if (!isObject_1(objValue) || (srcIndex && isFunction_1(objValue))) {
+	      else if (!isObject_1(objValue) || isFunction_1(objValue)) {
 	        newValue = _initCloneObject(srcValue);
 	      }
 	    }
@@ -5164,8 +5227,8 @@ var PS = (function (exports) {
 	    return;
 	  }
 	  _baseFor(source, function(srcValue, key) {
+	    stack || (stack = new _Stack);
 	    if (isObject_1(srcValue)) {
-	      stack || (stack = new _Stack);
 	      _baseMergeDeep(object, source, key, srcIndex, baseMerge, customizer, stack);
 	    }
 	    else {
@@ -5605,7 +5668,7 @@ var PS = (function (exports) {
 	      all.parent = bg;
 	      all.centerX();
 	      // Set up FlowComponent
-	      this.flow = new FlowComponent;
+	      this.flow = new FlowComponent();
 	      this.flow.width = this.options.firstPage.width;
 	      this.flow.height = this.options.firstPage.height;
 	      this.flow.parent = all;
@@ -5940,12 +6003,12 @@ var PS = (function (exports) {
 	      head.appendChild(style);
 	      // Generating text fields
 	      ff$1('text-field*,text_field*').forEach((field) => {
-	        return field.html = `<input placeholder="${this.options.textField.placeholderText}" class="${this.options.textField.defaultClass}" />`;
+	        return field.html = `<input placeholder=\"${this.options.textField.placeholderText}\" class=\"${this.options.textField.defaultClass}\" />`;
 	      });
 	      // Generating select boxes
 	      return ff$1('select-field*,select_field*').forEach((field, index) => {
 	        var action, actions, j, layerName, len, opt, optString, ref6;
-	        optString = `<option selected disabled style="color: red">${this.options.selectField.placeholderText}</option>`;
+	        optString = `<option selected disabled style=\"color: red\">${this.options.selectField.placeholderText}</option>`;
 	        layerName = this.getLayerName(field);
 	        actions = parse(layerName).filter(function(action) {
 	          // if the layer has a ._info.originalName, it's from sketch and the string is intact. otherwise, the layer name replaced spaces with "_"
@@ -5960,10 +6023,10 @@ var PS = (function (exports) {
 	          ref6 = action.options;
 	          for (j = 0, len = ref6.length; j < len; j++) {
 	            opt = ref6[j];
-	            optString += `<option value="${opt.value}">${opt.name.replace(/\_/g, ' ').trim()}</option>`;
+	            optString += `<option value=\"${opt.value}\">${opt.name.replace(/\_/g, ' ').trim()}</option>`;
 	          }
 	        }
-	        return field.html = `<select class="${this.options.selectField.defaultClass} empty" onChange="this.classList.remove('empty');">${optString}</select>`;
+	        return field.html = `<select class=\"${this.options.selectField.defaultClass} empty\" onChange=\"this.classList.remove('empty');\">${optString}</select>`;
 	      });
 	    }
 
