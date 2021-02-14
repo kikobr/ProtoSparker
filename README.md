@@ -56,6 +56,7 @@ First you'll have to download Framer.js library ([visit this page and download t
         <script src="js/ProtoSparker.js"></script>
         <script type="text/javascript">
             var importer = new SvgImporter({
+                editableSvg: true,
                 files: [ 'img/page1.svg', 'img/page2.svg' ]
             });
             var protoSparker = new ProtoSparker({
@@ -81,7 +82,7 @@ You have to serve this page with an HTTP server so that our script can request y
 
 ```coffeescript
 importer = new SvgImporter
-    editableSvg: false,
+    editableSvg: true,
     files: [ "img/page1.svg", "img/page2.svg" ]
 ```
 
