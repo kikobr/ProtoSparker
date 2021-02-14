@@ -72,7 +72,7 @@ You have to serve this page with an HTTP server so that our script can request y
 
 
 ### Prototype is taking too much time to load?
-Try renaming some complex layer groups to "flatten;". See [Flatten Feature](#flatten;)
+Try renaming some complex layer groups to "flatten;". See [Flatten Feature](#flatten)
 
 #### What's not working yet ####
 *Not running on Firefox*: Firefox has a [bug](https://bugzilla.mozilla.org/show_bug.cgi?id=612118) dealing with .getBBox().
@@ -114,7 +114,7 @@ Turn it on if you want to see how much time is taking to load each file.
 ## Features
 [goto](#gototargetlayer) <br>
 [goback](#goback) <br>
-[flatten](#flatten;) <br>
+[flatten](#flatten) <br>
 [scroll](#scroll) <br>
 [text-field](#text-field) <br>
 [select-field](#select-fieldoptionvalueoptionvalue) <br>
