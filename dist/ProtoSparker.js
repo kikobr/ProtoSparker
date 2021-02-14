@@ -719,10 +719,15 @@ body {
 	   * End of inner html
 	   */
 	  // applies svg to image data
-	  layerParams.image = `data:image/svg+xml;charset=UTF-8,${encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')).replace(/\"/g, "\\\"").replace(/\'/g, "\\'") // removes line breaks
-}`;
+	  layerParams.image = `data:image/svg+xml;charset=UTF-8,${  // removes line breaks
+// substitutes # to %23, since Firefox uses # to indicate fragments
+// https://stackoverflow.com/a/30676203
+encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')).replace(/\#/g, "%23")}`;
 	  layerParams.height = Math.ceil(layerParams.height);
 	  layerParams.width = Math.ceil(layerParams.width);
+	  if (layerParams.name === "Ray_Neal") {
+	    console.log(layerParams.image);
+	  }
 	  if (node.nodeName === 'svg') {
 	    layerParams.x = nodeBounds.x || nodeBounds.left;
 	    layerParams.y = nodeBounds.y || nodeBounds.top;

@@ -379,12 +379,17 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
     # applies svg to image data
     layerParams.image = "data:image/svg+xml;charset=UTF-8,#{
-        encodeURI layerSvg.outerHTML.replace(/\n|\t/g, ' ')  # removes line breaks
-            .replace(/\"/g, "\\\"")
-            .replace(/\'/g, "\\'")
+        # removes line breaks
+        encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' '))\
+          # substitutes # to %23, since Firefox uses # to indicate fragments
+          # https://stackoverflow.com/a/30676203
+          .replace(/\#/g, "%23")
     }"
     layerParams.height = Math.ceil layerParams.height
     layerParams.width = Math.ceil layerParams.width
+
+    if layerParams.name == "Ray_Neal"
+      console.log layerParams.image
 
     if node.nodeName == 'svg'
         layerParams.x = nodeBounds.x or nodeBounds.left
