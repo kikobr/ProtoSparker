@@ -838,12 +838,14 @@ encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')).replace(/\#/g, "%23")}`;
 	  class SvgImporter {
 	    constructor(options = {
 	        files: [],
-	        editableSvg: false
+	        editableSvg: false,
+	        log: false
 	      }) {
 	      var file, i, index, len, ref;
 	      this.options = options;
 	      this.files = this.options.files;
 	      this.editableSvg = this.options.editableSvg;
+	      this.log = this.options.log;
 	      if (!this.files) {
 	        return false;
 	      }
@@ -858,7 +860,8 @@ encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')).replace(/\#/g, "%23")}`;
 	    }
 
 	    loadFile(file, index) {
-	      var hasRootG, i, len, svgEl, svgTraverseEl;
+	      var diffTime, hasRootG, i, len, startTime, svgEl, svgTraverseEl;
+	      startTime = new Date(); // start timer
 	      loadFile$1.call(this, file, index);
 	      svgTraverseEl = document.querySelectorAll(`[data-import-id='${index}'] svg > :not(defs):not(title):not(desc):not(style)`);
 	      hasRootG = document.querySelectorAll(`[data-import-id='${index}'] svg > g`).length === 1 ? true : false;
@@ -872,7 +875,11 @@ encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')).replace(/\#/g, "%23")}`;
 	        traverse$1.call(this, document.querySelector(`[data-import-id='${index}'] svg`));
 	      }
 	      if (index === this.files.length - 1) {
-	        return this.loading = false;
+	        this.loading = false;
+	      }
+	      diffTime = (new Date().getTime() - startTime.getTime()) / 1000;
+	      if (this.log) {
+	        return console.log(`Loaded ${file} in ${diffTime} seconds`);
 	      }
 	    }
 
@@ -890,6 +897,8 @@ encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')).replace(/\#/g, "%23")}`;
 	  SvgImporter.prototype.setupContainer = setupContainer$1;
 
 	  SvgImporter.prototype.layerCount = 0;
+
+	  SvgImporter.prototype.log = false;
 
 	  return SvgImporter;
 
