@@ -134,6 +134,13 @@ class exports.ProtoSparker
 			x: 0
 			backgroundColor: "#000000"
 		all.parent = bg
+		all.name = "all"
+		bg.name = "bg"
+
+		# if there was no firstPage, fallback background to transparent, to hide a black square (bg layer)
+		if !@options.firstPage
+			all.backgroundColor = "transparent"
+			bg.backgroundColor = "transparent"
 
 		window.addEventListener "resize", () => @updateScreenSize(all, bg)
 		@updateScreenSize(all, bg)

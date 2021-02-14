@@ -313,7 +313,7 @@ body {
 	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1, getMatrixTransform: getMatrixTransform$1} = utils);
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var ancestor, ancestorT, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, currentStyle, def, defs, el, fill, fillSelector, filter, filterClone, filterSelector, g, i, id, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len10, len11, len12, len13, len2, len3, len4, len5, len6, len7, len8, len9, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, parentNodeBBox, path, q, qt, r, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8, results, rotate, rotateX, rotateY, s, scaleX, scaleY, skipChildren, strokeWidth, style, svg, svgIds, svgStr, t, tX, tY, toX, toY, u, url, use, useBBox, useBounds, v, viewBox, w, x;
+	  var ancestor, ancestorT, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, currentStyle, def, defs, el, fill, fillSelector, filter, filterClone, filterSelector, g, i, id, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len10, len11, len12, len13, len2, len3, len4, len5, len6, len7, len8, len9, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, parentNodeBBox, path, q, qt, r, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8, results, rotate, rotateX, rotateY, s, scaleX, scaleY, skipChildren, strokeWidth, style, svg, svgIds, svgStr, t, tX, tY, toX, toY, transform, u, url, use, useBBox, useBounds, v, viewBox, w, x;
 	  // ignoring
 	  if (node.nodeName === 'mask' || node.nodeName === 'clipPath' || node.nodeName === 'use' && node.parentNode.children.length === 1) {
 	    return false;
@@ -561,7 +561,7 @@ body {
 	    }
 	  }
 	  // some clip-paths are applied as classes
-	  if ((!isFirefox) && (node.hasAttribute('clip-path') || (computedStyle.clipPath && computedStyle.clipPath !== 'none'))) {
+	  if ((1 || !isFirefox) && (node.hasAttribute('clip-path') || (computedStyle.clipPath && computedStyle.clipPath !== 'none'))) {
 	    url = node.getAttribute('clip-path') || computedStyle.clipPath;
 	    // removes "" and ''
 	    url = url.replace('url("', 'url(').replace('url(\'', 'url(').replace(/\"\)$/, ')').replace(/\'\)$/, ')');
@@ -587,6 +587,24 @@ body {
 	    }
 	    layerParams.width = clipPathBBox.width;
 	    layerParams.height = clipPathBBox.height;
+	    /*
+	      Firefox fix: there is a case <defs><clipPath id="clip0"><rect /> will correctly
+	      get a clipPathInner <rect>, but its getBBox and getBoundingClientRect comes as zero,
+	      when in Chrome it comes with a value as expected. If it happens, just use the raw
+	      width and height of the clipPathInner
+	    */
+	    if (layerParams.width === 0 && layerParams.height === 0 && clipPathInner.getAttribute("width") && clipPathInner.getAttribute("height")) {
+	      layerParams.width = clipPathInner.getAttribute("width");
+	      layerParams.height = clipPathInner.getAttribute("height");
+	    }
+	    /*
+	      Firefox fix: if theres an <clipPath><path> with a clipPathInner's
+	      getBBox ou getBoundingClientRect as zero, fallback to the node width
+	    */
+	    if (layerParams.width === 0 && layerParams.height === 0 && clipPathBounds.width === 0 && clipPathBounds.height === 0) {
+	      layerParams.width = nodeBBox.width;
+	      layerParams.height = nodeBBox.height;
+	    }
 	    // bug? some layers come with a wrong getBoundingClientRect(), like x: -2000.
 	    // trying to simplify with 0.
 	    // if clipPathInner and clipPathInnerBBox
@@ -602,6 +620,25 @@ body {
 	    //         layerParams.y -= parentLayer.screenFrame.y
 	    layerParams.x = clipPathBounds.x || clipPathBounds.left;
 	    layerParams.y = clipPathBounds.y || clipPathBounds.top;
+	    /*
+	      Firefox fix: if there's a <clipPath><rect transform="translate(0.5)", firefox will calculate
+	      the clipPath's and clipPathInner's getBBox and getBoundingClientRect (x, y) as 0
+	      If the clipPathInner (eg <rect />) has an explicit transform attribute, use it as x, y instead
+	    */
+	    if (layerParams.x === 0 && layerParams.y === 0 && clipPathInner.getAttribute("transform") && clipPathInner.getAttribute("transform").includes("translate")) {
+	      transform = clipPathInner.getAttribute("transform").match(/translate\((.+)\)/)[1];
+	      tX = 0;
+	      tY = 0;
+	      if (transform.includes(" ")) {
+	        tX = parseFloat(transform.split(" ")[0]);
+	        tY = parseFloat(transform.split(" ")[1]);
+	      } else {
+	        tX = parseFloat(transform);
+	        tY = parseFloat(transform);
+	      }
+	      layerParams.x += tX;
+	      layerParams.y += tY;
+	    }
 	    if (parentLayer) {
 	      layerParams.x -= parentLayer.screenFrame.x;
 	      layerParams.y -= parentLayer.screenFrame.y;
@@ -635,7 +672,7 @@ body {
 	      }
 	    }
 	  }
-	  if (!isFirefox && node.closest('[mask]')) {
+	  if (node.closest('[mask]')) {
 	    ancestor = node.closest('[mask]');
 	    maskSelector = ancestor.getAttribute('mask').replace(/(^url\()(.+)(\)$)/, '$2');
 	    mask = svg.querySelector(maskSelector);
@@ -5654,6 +5691,12 @@ encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')).replace(/\#/g, "%23")}`;
 	        backgroundColor: "#000000"
 	      });
 	      all.parent = bg;
+	      all.name = "all";
+	      bg.name = "bg";
+	      if (!this.options.firstPage) {
+	        all.backgroundColor = "transparent";
+	        bg.backgroundColor = "transparent";
+	      }
 	      window.addEventListener("resize", () => {
 	        return this.updateScreenSize(all, bg);
 	      });

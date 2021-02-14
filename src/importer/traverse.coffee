@@ -229,7 +229,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
                 child.setAttribute 'fill', 'transparent'
 
     # some clip-paths are applied as classes
-    if (not isFirefox) and (node.hasAttribute('clip-path') or (computedStyle.clipPath and computedStyle.clipPath != 'none'))
+
+    if (1 or not isFirefox) and (node.hasAttribute('clip-path') or (computedStyle.clipPath and computedStyle.clipPath != 'none'))
 
         url = node.getAttribute('clip-path') or computedStyle.clipPath
         # removes "" and ''
@@ -258,6 +259,24 @@ module.exports = traverse = (node, parent, parentLayer) ->
         layerParams.width = clipPathBBox.width
         layerParams.height = clipPathBBox.height
 
+        ###
+          Firefox fix: there is a case <defs><clipPath id="clip0"><rect /> will correctly
+          get a clipPathInner <rect>, but its getBBox and getBoundingClientRect comes as zero,
+          when in Chrome it comes with a value as expected. If it happens, just use the raw
+          width and height of the clipPathInner
+        ###
+        if layerParams.width == 0 and layerParams.height == 0 and clipPathInner.getAttribute("width") and clipPathInner.getAttribute("height")
+          layerParams.width = clipPathInner.getAttribute("width")
+          layerParams.height = clipPathInner.getAttribute("height")
+
+        ###
+          Firefox fix: if theres an <clipPath><path> with a clipPathInner's
+          getBBox ou getBoundingClientRect as zero, fallback to the node width
+        ###
+        if layerParams.width == 0 and layerParams.height == 0 and clipPathBounds.width == 0 and clipPathBounds.height == 0
+          layerParams.width = nodeBBox.width
+          layerParams.height = nodeBBox.height
+
         # bug? some layers come with a wrong getBoundingClientRect(), like x: -2000.
         # trying to simplify with 0.
         # if clipPathInner and clipPathInnerBBox
@@ -274,6 +293,29 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
         layerParams.x = clipPathBounds.x or clipPathBounds.left
         layerParams.y = clipPathBounds.y or clipPathBounds.top
+
+        ###
+          Firefox fix: if there's a <clipPath><rect transform="translate(0.5)", firefox will calculate
+          the clipPath's and clipPathInner's getBBox and getBoundingClientRect (x, y) as 0
+          If the clipPathInner (eg <rect />) has an explicit transform attribute, use it as x, y instead
+        ###
+        if layerParams.x == 0 and layerParams.y == 0 and
+          clipPathInner.getAttribute("transform") and clipPathInner.getAttribute("transform").includes("translate")
+
+            transform = clipPathInner.getAttribute("transform").match(/translate\((.+)\)/)[1]
+            tX = 0
+            tY = 0
+
+            if transform.includes " "
+              tX = parseFloat(transform.split(" ")[0])
+              tY = parseFloat(transform.split(" ")[1])
+            else
+              tX = parseFloat transform
+              tY = parseFloat transform
+
+            layerParams.x += tX
+            layerParams.y += tY
+
         if parentLayer
             layerParams.x -= parentLayer.screenFrame.x
             layerParams.y -= parentLayer.screenFrame.y
@@ -302,7 +344,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
             if child.nodeName == node.nodeName
                 child.removeAttribute 'filter'
 
-    if not isFirefox and node.closest('[mask]')
+    if node.closest('[mask]')
         ancestor = node.closest '[mask]'
         maskSelector = ancestor.getAttribute('mask').replace(/(^url\()(.+)(\)$)/, '$2')
         mask = svg.querySelector maskSelector
@@ -396,6 +438,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
     if node.nodeName == 'svg'
         layerParams.x = nodeBounds.x or nodeBounds.left
         layerParams.y = nodeBounds.y or nodeBounds.top
+
         layerParams.width = nodeBounds.width
         layerParams.height = nodeBounds.height
         layerParams.clip = true
@@ -455,7 +498,6 @@ module.exports = traverse = (node, parent, parentLayer) ->
         layer = new Layer layerParams
         if parentLayer then layer.parent = parentLayer
         createdLayer = layer
-
 
     # if name == 'path1' or name == 'path2' or name == 'path3' or name == 'path4'
     #     layer.style['border'] = '1px solid green'
