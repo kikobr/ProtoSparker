@@ -124,47 +124,19 @@ class exports.ProtoSparker
 		document.body.style.height = "auto"
 		# body.scrollTop = 0
 
-		default_w = @options.firstPage.width
-		default_h = @options.firstPage.height
-
-		if Framer.Device and Framer.Device.screen
-			screen_width = Framer.Device.screen.width
-			screen_height = Framer.Device.screen.height
-		else
-			screen_width = window.innerWidth
-			screen_height = window.innerHeight
-
-		# Something is fucked up when running the prototype on framer.cloud on chrome.
-		# Prototype is seems to overflow window height.
-		# I tried to solve this but I couldn't. Good luck.
-		hackedScreenHeight = 0
-		if window.location.origin.match('framer.cloud') and Utils.isMobile()
-			hackedScreenHeight = 170
-			screen_height -= hackedScreenHeight
-
-		hRatio = screen_width / default_w
-		vRatio = screen_height / default_h
-		ratio = hRatio
-		ratio = vRatio if vRatio < hRatio
-
 		Framer.Defaults.Layer.force2d = true
 		all = new Layer
-			width: default_w  	# <-- The width will be 750
-			height: default_h 	# <-- The height will be 1334
-			scale: ratio 		# <-- The ratio we got from the equation
 			originY: 0        	# <-- This moves the origin of scale to top left
 			y: 0              	# <-- Make this layer to the top
 			backgroundColor: "#000000"
 		bg = new Layer
-			width: screen_width
-			height: screen_height
 			y: 0
 			x: 0
 			backgroundColor: "#000000"
-		bg.height += hackedScreenHeight
-
 		all.parent = bg
-		all.centerX()
+
+		window.addEventListener "resize", () => @updateScreenSize(all, bg)
+		@updateScreenSize(all, bg)
 
 		# Set up FlowComponent
 		@flow = new FlowComponent
@@ -213,6 +185,41 @@ class exports.ProtoSparker
 		@generateFields()
 		@generateScrolls()
 		@generateElements()
+
+	updateScreenSize: (all, bg) ->
+		default_w = @options.firstPage.width
+		default_h = @options.firstPage.height
+
+		if Framer.Device and Framer.Device.screen
+			screen_width = Framer.Device.screen.width
+			screen_height = Framer.Device.screen.height
+		else
+			screen_width = window.innerWidth
+			screen_height = window.innerHeight
+
+		# Something is fucked up when running the prototype on framer.cloud on chrome.
+		# Prototype is seems to overflow window height.
+		# I tried to solve this but I couldn't. Good luck.
+		hackedScreenHeight = 0
+		if window.location.origin.match('framer.cloud') and Utils.isMobile()
+			hackedScreenHeight = 170
+			screen_height -= hackedScreenHeight
+
+		hRatio = screen_width / default_w
+		vRatio = screen_height / default_h
+		ratio = hRatio
+		ratio = vRatio if vRatio < hRatio
+
+		# update all and bg layers
+		all.width = default_w
+		all.height = default_h
+		all.scale = ratio
+
+		bg.width = screen_width
+		bg.height = screen_height
+		bg.height += hackedScreenHeight
+
+		all.centerX()
 
 	testParser: ->
 		print parse "action"

@@ -5599,7 +5599,7 @@ encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')).replace(/\#/g, "%23")}`;
 	var ProtoSparker = (function() {
 	  class ProtoSparker {
 	    constructor(options1 = {}) {
-	      var all, base, base1, base2, base3, bg, default_h, default_w, hRatio, hackedScreenHeight, ratio, screen_height, screen_width, vRatio;
+	      var all, base, base1, base2, base3, bg;
 	      this.options = options1;
 	      // Opts
 	      if ((base = this.options).firstPage == null) {
@@ -5642,48 +5642,22 @@ encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')).replace(/\#/g, "%23")}`;
 	      ];
 	      document.body.style.height = "auto";
 	      // body.scrollTop = 0
-	      default_w = this.options.firstPage.width;
-	      default_h = this.options.firstPage.height;
-	      if (Framer.Device && Framer.Device.screen) {
-	        screen_width = Framer.Device.screen.width;
-	        screen_height = Framer.Device.screen.height;
-	      } else {
-	        screen_width = window.innerWidth;
-	        screen_height = window.innerHeight;
-	      }
-	      // Something is fucked up when running the prototype on framer.cloud on chrome.
-	      // Prototype is seems to overflow window height.
-	      // I tried to solve this but I couldn't. Good luck.
-	      hackedScreenHeight = 0;
-	      if (window.location.origin.match('framer.cloud') && Utils.isMobile()) {
-	        hackedScreenHeight = 170;
-	        screen_height -= hackedScreenHeight;
-	      }
-	      hRatio = screen_width / default_w;
-	      vRatio = screen_height / default_h;
-	      ratio = hRatio;
-	      if (vRatio < hRatio) {
-	        ratio = vRatio;
-	      }
 	      Framer.Defaults.Layer.force2d = true;
 	      all = new Layer({
-	        width: default_w, // <-- The width will be 750
-	        height: default_h, // <-- The height will be 1334
-	        scale: ratio, // <-- The ratio we got from the equation
 	        originY: 0, // <-- This moves the origin of scale to top left
 	        y: 0, // <-- Make this layer to the top
 	        backgroundColor: "#000000"
 	      });
 	      bg = new Layer({
-	        width: screen_width,
-	        height: screen_height,
 	        y: 0,
 	        x: 0,
 	        backgroundColor: "#000000"
 	      });
-	      bg.height += hackedScreenHeight;
 	      all.parent = bg;
-	      all.centerX();
+	      window.addEventListener("resize", () => {
+	        return this.updateScreenSize(all, bg);
+	      });
+	      this.updateScreenSize(all, bg);
 	      // Set up FlowComponent
 	      this.flow = new FlowComponent();
 	      this.flow.width = this.options.firstPage.width;
@@ -5738,6 +5712,41 @@ encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')).replace(/\#/g, "%23")}`;
 	      this.generateFields();
 	      this.generateScrolls();
 	      this.generateElements();
+	    }
+
+	    updateScreenSize(all, bg) {
+	      var default_h, default_w, hRatio, hackedScreenHeight, ratio, screen_height, screen_width, vRatio;
+	      default_w = this.options.firstPage.width;
+	      default_h = this.options.firstPage.height;
+	      if (Framer.Device && Framer.Device.screen) {
+	        screen_width = Framer.Device.screen.width;
+	        screen_height = Framer.Device.screen.height;
+	      } else {
+	        screen_width = window.innerWidth;
+	        screen_height = window.innerHeight;
+	      }
+	      // Something is fucked up when running the prototype on framer.cloud on chrome.
+	      // Prototype is seems to overflow window height.
+	      // I tried to solve this but I couldn't. Good luck.
+	      hackedScreenHeight = 0;
+	      if (window.location.origin.match('framer.cloud') && Utils.isMobile()) {
+	        hackedScreenHeight = 170;
+	        screen_height -= hackedScreenHeight;
+	      }
+	      hRatio = screen_width / default_w;
+	      vRatio = screen_height / default_h;
+	      ratio = hRatio;
+	      if (vRatio < hRatio) {
+	        ratio = vRatio;
+	      }
+	      // update all and bg layers
+	      all.width = default_w;
+	      all.height = default_h;
+	      all.scale = ratio;
+	      bg.width = screen_width;
+	      bg.height = screen_height;
+	      bg.height += hackedScreenHeight;
+	      return all.centerX();
 	    }
 
 	    testParser() {
