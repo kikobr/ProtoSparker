@@ -345,6 +345,9 @@ body {
 	  computedStyle = getComputedStyle(node);
 	  isFirefox = navigator.userAgent.indexOf("Firefox") > 0 ? true : false;
 	  qt = getMatrixTransform$1(node);
+	  if (name.includes("flatten;")) {
+	    skipChildren = true;
+	  }
 	  // get default layer params
 	  layerParams = {
 	    name: name,
@@ -380,7 +383,7 @@ body {
 	   * Generating inner html and applying transforms so that the svg
 	   * is rendered at 0,0 position of the layer
 	   */
-	  // groups that has only simple shapes may be rendered as just one framer layer.
+	  // groups that have only simple shapes may be rendered as just one framer layer.
 	  // if node.nodeName == 'g' and node.querySelectorAll(':scope > circle').length == node.children.length then skipChildren = true
 	  if (node.nodeName === 'g' && node.children.length === 1 && node.children[0].nodeName === 'use') {
 	    use = node.children[0];
@@ -471,6 +474,9 @@ body {
 	  //     # these groups do not render any svg
 	  //     if qt and qt.angle
 	  //         layerParams.rotation = qt.angle
+
+	  // if the svg node being traversed is a shape other than g or is a g AND an skip children,
+	  // move the use/defs to the layerSvg and apply the node as the base layerSvg
 	  } else if (node.nodeName !== 'g' || (node.nodeName === 'g' && skipChildren)) {
 	    tX = -nodeBBox.x;
 	    tY = -nodeBBox.y;
@@ -725,9 +731,6 @@ body {
 encodeURI(layerSvg.outerHTML.replace(/\n|\t/g, ' ')).replace(/\#/g, "%23")}`;
 	  layerParams.height = Math.ceil(layerParams.height);
 	  layerParams.width = Math.ceil(layerParams.width);
-	  if (layerParams.name === "Ray_Neal") {
-	    console.log(layerParams.image);
-	  }
 	  if (node.nodeName === 'svg') {
 	    layerParams.x = nodeBounds.x || nodeBounds.left;
 	    layerParams.y = nodeBounds.y || nodeBounds.top;

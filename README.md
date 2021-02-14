@@ -67,8 +67,12 @@ First you'll have to download Framer.js library ([visit this page and download t
 </html>
 ```
 
-#### Serving the page ####
+### Serving the page ###
 You have to serve this page with an HTTP server so that our script can request your svg files. If you are on Mac or Linux, open your terminal, navigate to the project folder and type `python -m SimpleHTTPServer 8000` or `python -m http.server 8000` - hit enter and visit http://localhost:8000 in your browser. If you are on Windows, you can download [MiniWeb](https://sourceforge.net/projects/miniweb/), drop you html files and images inside htdocs folder, run miniweb.exe and visit http://localhost:8000.
+
+
+### Prototype is taking too much time to load?
+Try renaming some complex layer groups to "flatten;". See [Flatten Feature](#flatten;)
 
 #### What's not working yet ####
 *Not running on Firefox*: Firefox has a [bug](https://bugzilla.mozilla.org/show_bug.cgi?id=612118) dealing with .getBBox().
@@ -92,6 +96,9 @@ If you enable this, the SVG slices will be imported using Framer built in SVG AP
 ### files (Array) ###
 Here you pass the files you want to import into Framer. If this SVG doesn't contain a root group with an "id" or "data-name" (like an artboard), SVGImporter will set its Framer root layer name as the SVG filename.
 
+### log (Boolean:false)
+Turn it on if you want to see how much time is taking to load each file.
+
 ---
 
 # ProtoSparker Reference
@@ -107,6 +114,7 @@ Here you pass the files you want to import into Framer. If this SVG doesn't cont
 ## Features
 [goto](#gototargetlayer) <br>
 [goback](#goback) <br>
+[flatten](#flatten;) <br>
 [scroll](#scroll) <br>
 [text-field](#text-field) <br>
 [select-field](#select-fieldoptionvalueoptionvalue) <br>
@@ -196,6 +204,9 @@ You can pass a transition option and control the animation when transition happe
 
 ### goback;
 This layer name will make the prototype return to the last page it visited. It's really useful for back buttons.
+
+### flatten;
+When using SvgImporter, this will flatten a group into a single layer, improving dramatically the loading and render times. It's specially useful for illustration groups, because they usually have a lot of layer that slows down creation of framer layers.
 
 ### scroll;
 This makes the layer / group automatically scrollable. By default it's set to scroll vertically

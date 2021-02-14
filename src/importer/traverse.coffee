@@ -29,6 +29,9 @@ module.exports = traverse = (node, parent, parentLayer) ->
     isFirefox = if navigator.userAgent.indexOf("Firefox") > 0 then true else false
     qt = getMatrixTransform node
 
+    if name.includes "flatten;"
+      skipChildren = true
+
     # get default layer params
     layerParams =
         name: name
@@ -66,7 +69,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
     # is rendered at 0,0 position of the layer
     ###
 
-    # groups that has only simple shapes may be rendered as just one framer layer.
+    # groups that have only simple shapes may be rendered as just one framer layer.
     # if node.nodeName == 'g' and node.querySelectorAll(':scope > circle').length == node.children.length then skipChildren = true
 
     if node.nodeName == 'g' and node.children.length == 1 and node.children[0].nodeName == 'use'
@@ -153,6 +156,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
     #     if qt and qt.angle
     #         layerParams.rotation = qt.angle
 
+    # if the svg node being traversed is a shape other than g or is a g AND an skip children,
+    # move the use/defs to the layerSvg and apply the node as the base layerSvg
     else if node.nodeName != 'g' or (node.nodeName == 'g' and skipChildren)
         tX = -nodeBBox.x
         tY = -nodeBBox.y
@@ -388,9 +393,6 @@ module.exports = traverse = (node, parent, parentLayer) ->
     layerParams.height = Math.ceil layerParams.height
     layerParams.width = Math.ceil layerParams.width
 
-    if layerParams.name == "Ray_Neal"
-      console.log layerParams.image
-
     if node.nodeName == 'svg'
         layerParams.x = nodeBounds.x or nodeBounds.left
         layerParams.y = nodeBounds.y or nodeBounds.top
@@ -453,6 +455,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
         layer = new Layer layerParams
         if parentLayer then layer.parent = parentLayer
         createdLayer = layer
+
 
     # if name == 'path1' or name == 'path2' or name == 'path3' or name == 'path4'
     #     layer.style['border'] = '1px solid green'
