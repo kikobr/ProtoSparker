@@ -276,6 +276,8 @@ module.exports = traverse = (node, parent, parentLayer) ->
         if layerParams.width == 0 and layerParams.height == 0 and clipPathBounds.width == 0 and clipPathBounds.height == 0
           layerParams.width = nodeBBox.width
           layerParams.height = nodeBBox.height
+          clipPathBounds.x = nodeBounds.x
+          clipPathBounds.y = nodeBounds.y
 
         # bug? some layers come with a wrong getBoundingClientRect(), like x: -2000.
         # trying to simplify with 0.
@@ -344,6 +346,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
             if child.nodeName == node.nodeName
                 child.removeAttribute 'filter'
 
+    # TODO find out why firefox is bugged with nowplaying.svg
     if node.closest('[mask]')
         ancestor = node.closest '[mask]'
         maskSelector = ancestor.getAttribute('mask').replace(/(^url\()(.+)(\)$)/, '$2')
@@ -357,6 +360,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
 
         for child, index in mask.querySelectorAll('*')
             if child.nodeName == 'use' or child.nodeName == 'rect' or child.nodeName == 'path'
+
                 defs = getUseDefs child
                 layerSvg.querySelector('defs').insertAdjacentElement('beforeend', def) for def in defs
                 childBBox = child.getBBox()
@@ -364,6 +368,27 @@ module.exports = traverse = (node, parent, parentLayer) ->
                 childOriginalT = child.getAttribute('transform') and child.getAttribute('transform').match(/translate\(([^)]+)\)/)
                 linkedSelector = child.getAttribute "xlink:href"
                 linked = svg.querySelectorAll(linkedSelector)[0]
+
+                ###
+                  Firefox fix: TODO explain
+                ###
+                if childBBox.x == 0 and childBBox.y == 0 and childBBox.width == 0 and childBBox.height == 0 and
+                  node.getAttribute("transform") and node.getAttribute("transform").includes("matrix")
+                    nodeT = getMatrixTransform node
+                    childBBox = {
+                      x: nodeT.translateX,
+                      y: nodeT.translateY,
+                      width: node.getBBox().width * nodeT.scaleX,
+                      height: node.getBBox().height * nodeT.scaleY
+                    }
+                    childBounds = {
+                      x: nodeT.translateX - nodeT.rootBBox.x,
+                      left: nodeT.translateX - nodeT.rootBBox.x,
+                      y: nodeT.translateY - nodeT.rootBBox.y,
+                      top: nodeT.translateY - nodeT.rootBBox.y,
+                      width: node.getBBox().width * nodeT.scaleX,
+                      height: node.getBBox().height * nodeT.scaleY,
+                    }
 
                 childTx = (childBounds.x or childBounds.left)
                 childTy = (childBounds.y or childBounds.top)

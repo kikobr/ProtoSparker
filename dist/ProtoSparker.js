@@ -313,7 +313,7 @@ body {
 	({getViewBox: getViewBox$2, getUseDefs: getUseDefs$1, getMatrixTransform: getMatrixTransform$1} = utils);
 
 	var traverse_1 = traverse = function(node, parent, parentLayer) {
-	  var ancestor, ancestorT, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, currentStyle, def, defs, el, fill, fillSelector, filter, filterClone, filterSelector, g, i, id, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len10, len11, len12, len13, len2, len3, len4, len5, len6, len7, len8, len9, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, o, p, parentNodeBBox, path, q, qt, r, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8, results, rotate, rotateX, rotateY, s, scaleX, scaleY, skipChildren, strokeWidth, style, svg, svgIds, svgStr, t, tX, tY, toX, toY, transform, u, url, use, useBBox, useBounds, v, viewBox, w, x;
+	  var ancestor, ancestorT, child, childBBox, childBounds, childClone, childOriginalT, childTx, childTy, clipPath, clipPathBBox, clipPathBounds, clipPathInner, clipPathInnerBBox, clipSelector, computedStyle, createdLayer, currentStyle, def, defs, el, fill, fillSelector, filter, filterClone, filterSelector, g, i, id, importId, index, inner, isFirefox, j, k, l, layer, layerDefs, layerParams, layerSvg, len, len1, len10, len11, len12, len13, len2, len3, len4, len5, len6, len7, len8, len9, linked, linkedSelector, m, mask, maskClone, maskSelector, n, name, nodeBBox, nodeBounds, nodeT, o, p, parentNodeBBox, path, q, qt, r, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, ref8, results, rotate, rotateX, rotateY, s, scaleX, scaleY, skipChildren, strokeWidth, style, svg, svgIds, svgStr, t, tX, tY, toX, toY, transform, u, url, use, useBBox, useBounds, v, viewBox, w, x;
 	  // ignoring
 	  if (node.nodeName === 'mask' || node.nodeName === 'clipPath' || node.nodeName === 'use' && node.parentNode.children.length === 1) {
 	    return false;
@@ -604,6 +604,8 @@ body {
 	    if (layerParams.width === 0 && layerParams.height === 0 && clipPathBounds.width === 0 && clipPathBounds.height === 0) {
 	      layerParams.width = nodeBBox.width;
 	      layerParams.height = nodeBBox.height;
+	      clipPathBounds.x = nodeBounds.x;
+	      clipPathBounds.y = nodeBounds.y;
 	    }
 	    // bug? some layers come with a wrong getBoundingClientRect(), like x: -2000.
 	    // trying to simplify with 0.
@@ -672,6 +674,7 @@ body {
 	      }
 	    }
 	  }
+	  // TODO find out why firefox is bugged with nowplaying.svg
 	  if (node.closest('[mask]')) {
 	    ancestor = node.closest('[mask]');
 	    maskSelector = ancestor.getAttribute('mask').replace(/(^url\()(.+)(\)$)/, '$2');
@@ -696,6 +699,26 @@ body {
 	        childOriginalT = child.getAttribute('transform') && child.getAttribute('transform').match(/translate\(([^)]+)\)/);
 	        linkedSelector = child.getAttribute("xlink:href");
 	        linked = svg.querySelectorAll(linkedSelector)[0];
+	        /*
+	          Firefox fix: TODO explain
+	        */
+	        if (childBBox.x === 0 && childBBox.y === 0 && childBBox.width === 0 && childBBox.height === 0 && node.getAttribute("transform") && node.getAttribute("transform").includes("matrix")) {
+	          nodeT = getMatrixTransform$1(node);
+	          childBBox = {
+	            x: nodeT.translateX,
+	            y: nodeT.translateY,
+	            width: node.getBBox().width * nodeT.scaleX,
+	            height: node.getBBox().height * nodeT.scaleY
+	          };
+	          childBounds = {
+	            x: nodeT.translateX - nodeT.rootBBox.x,
+	            left: nodeT.translateX - nodeT.rootBBox.x,
+	            y: nodeT.translateY - nodeT.rootBBox.y,
+	            top: nodeT.translateY - nodeT.rootBBox.y,
+	            width: node.getBBox().width * nodeT.scaleX,
+	            height: node.getBBox().height * nodeT.scaleY
+	          };
+	        }
 	        childTx = childBounds.x || childBounds.left;
 	        childTy = childBounds.y || childBounds.top;
 	        [rotate, rotateX, rotateY] = [0, 0, 0];
