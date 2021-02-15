@@ -32,6 +32,12 @@ module.exports = traverse = (node, parent, parentLayer) ->
     if name.includes "flatten;"
       skipChildren = true
 
+    # Firefox fix: some bug where node.getBoundingClientRect will calculate less than getBBox
+    # update: messes up other layouts, eg + button on home.svg
+    # TODO: icons on home.svg
+    # if isFirefox and nodeBBox.y > nodeBounds.y
+    #   nodeBounds.y += nodeBBox.y - nodeBounds.y
+
     # get default layer params
     layerParams =
         name: name
@@ -370,10 +376,12 @@ module.exports = traverse = (node, parent, parentLayer) ->
                 linked = svg.querySelectorAll(linkedSelector)[0]
 
                 ###
-                  Firefox fix: TODO explain
+                  Firefox fix: when <mask><path />, firefox will render it with getBBox and getBoundingClientRect as width/height/x/y 0
+                  In this cases, fallback width/height/x/y to the node getBBox and getBoundingClientRect
+                  If the mask's child has a transform attribute with a matrix, calculate them based on this transformations
                 ###
-                if childBBox.x == 0 and childBBox.y == 0 and childBBox.width == 0 and childBBox.height == 0 and
-                  node.getAttribute("transform") and node.getAttribute("transform").includes("matrix")
+                if childBBox.x == 0 and childBBox.y == 0 and childBBox.width == 0 and childBBox.height == 0
+                  if node.getAttribute("transform") and node.getAttribute("transform").includes("matrix")
                     nodeT = getMatrixTransform node
                     childBBox = {
                       x: nodeT.translateX,
@@ -388,6 +396,21 @@ module.exports = traverse = (node, parent, parentLayer) ->
                       top: nodeT.translateY - nodeT.rootBBox.y,
                       width: node.getBBox().width * nodeT.scaleX,
                       height: node.getBBox().height * nodeT.scaleY,
+                    }
+                  else
+                    childBBox = {
+                      x: node.getBBox().x,
+                      y: node.getBBox().y,
+                      width: node.getBBox().width,
+                      height: node.getBBox().height,
+                    }
+                    childBounds = {
+                      x: node.getBoundingClientRect().x,
+                      left: node.getBoundingClientRect().x,
+                      y: node.getBoundingClientRect().y,
+                      top: node.getBoundingClientRect().y,
+                      width: node.getBoundingClientRect().width,
+                      height: node.getBoundingClientRect().height,
                     }
 
                 childTx = (childBounds.x or childBounds.left)
@@ -419,6 +442,7 @@ module.exports = traverse = (node, parent, parentLayer) ->
                 childClone.removeAttribute 'transform'
                 childClone.removeAttribute 'transform-origin'
                 childClone.setAttribute 'style', "#{currentStyle}; transform-origin: #{toX + rotateX}px #{toY + rotateY}px; transform: translate(#{childTx}px, #{childTy}px) rotate(#{rotate}deg) scale(#{scaleX}, #{scaleY});"
+
 
         # apply mask attribute if node does not already have it
         for child in layerSvg.children

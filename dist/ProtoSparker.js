@@ -348,6 +348,12 @@ body {
 	  if (name.includes("flatten;")) {
 	    skipChildren = true;
 	  }
+	  // Firefox fix: some bug where node.getBoundingClientRect will calculate less than getBBox
+	  // update: messes up other layouts, eg + button on home.svg
+	  // TODO: icons on home.svg
+	  // if isFirefox and nodeBBox.y > nodeBounds.y
+	  //   nodeBounds.y += nodeBBox.y - nodeBounds.y
+
 	  // get default layer params
 	  layerParams = {
 	    name: name,
@@ -700,24 +706,43 @@ body {
 	        linkedSelector = child.getAttribute("xlink:href");
 	        linked = svg.querySelectorAll(linkedSelector)[0];
 	        /*
-	          Firefox fix: TODO explain
+	          Firefox fix: when <mask><path />, firefox will render it with getBBox and getBoundingClientRect as width/height/x/y 0
+	          In this cases, fallback width/height/x/y to the node getBBox and getBoundingClientRect
+	          If the mask's child has a transform attribute with a matrix, calculate them based on this transformations
 	        */
-	        if (childBBox.x === 0 && childBBox.y === 0 && childBBox.width === 0 && childBBox.height === 0 && node.getAttribute("transform") && node.getAttribute("transform").includes("matrix")) {
-	          nodeT = getMatrixTransform$1(node);
-	          childBBox = {
-	            x: nodeT.translateX,
-	            y: nodeT.translateY,
-	            width: node.getBBox().width * nodeT.scaleX,
-	            height: node.getBBox().height * nodeT.scaleY
-	          };
-	          childBounds = {
-	            x: nodeT.translateX - nodeT.rootBBox.x,
-	            left: nodeT.translateX - nodeT.rootBBox.x,
-	            y: nodeT.translateY - nodeT.rootBBox.y,
-	            top: nodeT.translateY - nodeT.rootBBox.y,
-	            width: node.getBBox().width * nodeT.scaleX,
-	            height: node.getBBox().height * nodeT.scaleY
-	          };
+	        if (childBBox.x === 0 && childBBox.y === 0 && childBBox.width === 0 && childBBox.height === 0) {
+	          if (node.getAttribute("transform") && node.getAttribute("transform").includes("matrix")) {
+	            nodeT = getMatrixTransform$1(node);
+	            childBBox = {
+	              x: nodeT.translateX,
+	              y: nodeT.translateY,
+	              width: node.getBBox().width * nodeT.scaleX,
+	              height: node.getBBox().height * nodeT.scaleY
+	            };
+	            childBounds = {
+	              x: nodeT.translateX - nodeT.rootBBox.x,
+	              left: nodeT.translateX - nodeT.rootBBox.x,
+	              y: nodeT.translateY - nodeT.rootBBox.y,
+	              top: nodeT.translateY - nodeT.rootBBox.y,
+	              width: node.getBBox().width * nodeT.scaleX,
+	              height: node.getBBox().height * nodeT.scaleY
+	            };
+	          } else {
+	            childBBox = {
+	              x: node.getBBox().x,
+	              y: node.getBBox().y,
+	              width: node.getBBox().width,
+	              height: node.getBBox().height
+	            };
+	            childBounds = {
+	              x: node.getBoundingClientRect().x,
+	              left: node.getBoundingClientRect().x,
+	              y: node.getBoundingClientRect().y,
+	              top: node.getBoundingClientRect().y,
+	              width: node.getBoundingClientRect().width,
+	              height: node.getBoundingClientRect().height
+	            };
+	          }
 	        }
 	        childTx = childBounds.x || childBounds.left;
 	        childTy = childBounds.y || childBounds.top;
