@@ -8,7 +8,7 @@ var PS = (function (exports) {
 		return module = { exports: {} }, fn(module, module.exports), module.exports;
 	}
 
-	var getFillDefs, getMatrixTransform, getRootG, getStrokeDefs, getUseDefs, getViewBox;
+	var getFillDefs, getFilterDefs, getMatrixTransform, getNodeDefs, getRootG, getStrokeDefs, getUseDefs, getViewBox;
 
 	var getViewBox_1 = getViewBox = function(node) {
 	  var svg, viewBox;
@@ -24,12 +24,12 @@ var PS = (function (exports) {
 	};
 
 	var getRootG_1 = getRootG = function(node) {
-	  var child, i, len, ref, rootG, svg;
+	  var child, j, len, ref, rootG, svg;
 	  rootG = null;
 	  svg = node.closest('svg');
 	  ref = svg.children;
-	  for (i = 0, len = ref.length; i < len; i++) {
-	    child = ref[i];
+	  for (j = 0, len = ref.length; j < len; j++) {
+	    child = ref[j];
 	    if (!rootG && child.nodeName === 'g') {
 	      rootG = child;
 	    }
@@ -41,42 +41,100 @@ var PS = (function (exports) {
 	};
 
 	var getUseDefs_1 = getUseDefs = function(node) {
-	  var defs, fillDefs, i, len, link, linked, linkedSelector, strokeDefs, svg;
+	  var _node, defs, eligibleNodes, j, len, nodeDefs, nodesWithDefs, svg;
 	  // if node.nodeName != 'use' then return false
 	  svg = node.closest("svg");
 	  defs = [];
-	  linkedSelector = node.getAttribute("xlink:href");
-	  if (linkedSelector && !linkedSelector.match('data:') && !linkedSelector.match('/')) {
-	    linked = svg.querySelectorAll(linkedSelector);
-	    for (i = 0, len = linked.length; i < len; i++) {
-	      link = linked[i];
-	      defs.push(link.cloneNode());
+	  nodesWithDefs = [];
+	  nodesWithDefs.push(node);
+	  eligibleNodes = node.querySelectorAll("[fill*=url], [filter*=url], [stroke*=url]");
+	  // add nodes with defs and apply getDefsFromNode
+	  // convert querySelectorAll to arrays, to be able to concat them
+	  nodesWithDefs = nodesWithDefs.concat(Array.prototype.slice.call(eligibleNodes));
+	// if there's more than just on node (on cases where flatten; is used),
+	// get all eligible def nodes and get all their <defs>
+	  for (j = 0, len = nodesWithDefs.length; j < len; j++) {
+	    _node = nodesWithDefs[j];
+	    nodeDefs = getNodeDefs(_node, svg);
+	    if (nodeDefs) {
+	      defs = defs.concat(nodeDefs); // comes cloned
 	    }
 	  }
-	  fillDefs = getFillDefs(node);
-	  if (fillDefs) {
-	    defs = defs.concat(fillDefs); // comes cloned
-	  }
-	  strokeDefs = getStrokeDefs(node);
-	  if (strokeDefs) {
-	    defs = defs.concat(strokeDefs); // comes cloned
+	  
+	  // TODO: delete all this old stuff if noting breaks
+	  // linkedSelector = _node.getAttribute "xlink:href"
+	  // if linkedSelector && not linkedSelector.match('data:') && not linkedSelector.match('/')
+	  //     linked = svg.querySelectorAll linkedSelector
+	  //     for link in linked
+	  //         defs.push link.cloneNode()
+
+	  // fillDefs = getFillDefs _node, svg
+	  // if fillDefs then defs = defs.concat fillDefs # comes cloned
+	  // filterDefs = getFilterDefs _node, svg
+	  // if filterDefs then defs = defs.concat filterDefs # comes cloned
+	  // strokeDefs = getStrokeDefs _node, svg
+	  // if strokeDefs then defs = defs.concat strokeDefs # comes cloned
+	  return defs;
+	};
+
+	var getNodeDefs_1 = getNodeDefs = function(node, svg) {
+	  var attrN, attrName, attrValue, def, defSelector, defs, i, j, k, l, len, len1, link, linked, linkedSelector, ref, use, useDefs, uses;
+	  defs = [];
+	  attrN = node.attributes.length;
+	// loop through node's attributes. if it finds an attribute with an "url" content,
+	// try to get the selector to the def element and append it to defs
+	  for (i = j = 0, ref = attrN; (0 <= ref ? j < ref : j > ref); i = 0 <= ref ? ++j : --j) {
+	    attrName = node.attributes[i].nodeName;
+	    attrValue = node.attributes[i].nodeValue;
+	    // If the attribute contains "url", excluding inline data:image/pngs
+	    if (attrValue.match("url") && !attrValue.match('data:')) {
+	      svg = svg || node.closest("svg");
+	      defSelector = attrValue.replace(/(^url\()(.+)(\)$)/, '$2');
+	      def = svg.querySelector(defSelector);
+	      defs.push(def.cloneNode(true));
+	      // get uses if this fill contains them
+	      if (def.querySelector('use')) {
+	        uses = def.querySelectorAll('use');
+	        for (k = 0, len = uses.length; k < len; k++) {
+	          use = uses[k];
+	          useDefs = getNodeDefs(use, svg);
+	          if (useDefs) {
+	            defs = defs.concat(useDefs); // comes cloned
+	          }
+	        }
+	      }
+	    }
+	    
+	    // if node's got an xlink:ref attribute, get the linked <def>
+	    // this will only apply to recursions, where the node has an <use> and getNodeDefs is called again
+	    if (attrName.match("xlink:href")) {
+	      svg = svg || node.closest("svg");
+	      linkedSelector = attrValue;
+	      if (linkedSelector && !linkedSelector.match('data:') && !linkedSelector.match('/')) {
+	        linked = svg.querySelectorAll(linkedSelector);
+	        for (l = 0, len1 = linked.length; l < len1; l++) {
+	          link = linked[l];
+	          defs.push(link.cloneNode());
+	        }
+	      }
+	    }
 	  }
 	  return defs;
 	};
 
-	var getFillDefs_1 = getFillDefs = function(node) {
-	  var defs, fill, fillUrl, i, len, svg, use, useDefs, uses;
+	var getFillDefs_1 = getFillDefs = function(node, svg) {
+	  var defs, fill, fillUrl, j, len, use, useDefs, uses;
 	  defs = [];
 	  if (node.hasAttribute("fill") && node.getAttribute("fill").match("url")) {
-	    svg = node.closest("svg");
+	    svg = svg || node.closest("svg");
 	    fillUrl = node.getAttribute('fill').replace(/(^url\()(.+)(\)$)/, '$2');
 	    fill = svg.querySelector(fillUrl);
 	    defs.push(fill.cloneNode(true));
 	    // get uses if this fill contains them
 	    if (fill.querySelector('use')) {
 	      uses = fill.querySelectorAll('use');
-	      for (i = 0, len = uses.length; i < len; i++) {
-	        use = uses[i];
+	      for (j = 0, len = uses.length; j < len; j++) {
+	        use = uses[j];
 	        useDefs = getUseDefs(use);
 	        if (useDefs) {
 	          defs = defs.concat(useDefs); // comes cloned
@@ -87,19 +145,42 @@ var PS = (function (exports) {
 	  return defs;
 	};
 
-	var getStrokeDefs_1 = getStrokeDefs = function(node) {
-	  var defs, i, len, stroke, strokeUrl, svg, use, useDefs, uses;
+	var getFilterDefs_1 = getFilterDefs = function(node, svg) {
+	  var defs, filter, filterUrl, j, len, use, useDefs, uses;
+	  defs = [];
+	  if (node.hasAttribute("filter") && node.getAttribute("filter").match("url")) {
+	    svg = svg || node.closest("svg");
+	    filterUrl = node.getAttribute('filter').replace(/(^url\()(.+)(\)$)/, '$2');
+	    filter = svg.querySelector(filterUrl);
+	    defs.push(filter.cloneNode(true));
+	    // get uses if this fill contains them
+	    if (filter.querySelector('use')) {
+	      uses = filter.querySelectorAll('use');
+	      for (j = 0, len = uses.length; j < len; j++) {
+	        use = uses[j];
+	        useDefs = getUseDefs(use);
+	        if (useDefs) {
+	          defs = defs.concat(useDefs); // comes cloned
+	        }
+	      }
+	    }
+	  }
+	  return defs;
+	};
+
+	var getStrokeDefs_1 = getStrokeDefs = function(node, svg) {
+	  var defs, j, len, stroke, strokeUrl, use, useDefs, uses;
 	  defs = [];
 	  if (node.hasAttribute("stroke") && node.getAttribute("stroke").match("url")) {
-	    svg = node.closest("svg");
+	    svg = svg || node.closest("svg");
 	    strokeUrl = node.getAttribute('stroke').replace(/(^url\()(.+)(\)$)/, '$2');
 	    stroke = svg.querySelector(strokeUrl);
 	    defs.push(stroke.cloneNode(true));
 	    // get uses if this fill contains them
 	    if (stroke.querySelector('use')) {
 	      uses = stroke.querySelectorAll('use');
-	      for (i = 0, len = uses.length; i < len; i++) {
-	        use = uses[i];
+	      for (j = 0, len = uses.length; j < len; j++) {
+	        use = uses[j];
 	        useDefs = getUseDefs(use);
 	        if (useDefs) {
 	          defs = defs.concat(useDefs); // comes cloned
@@ -185,7 +266,9 @@ var PS = (function (exports) {
 		getViewBox: getViewBox_1,
 		getRootG: getRootG_1,
 		getUseDefs: getUseDefs_1,
+		getNodeDefs: getNodeDefs_1,
 		getFillDefs: getFillDefs_1,
+		getFilterDefs: getFilterDefs_1,
 		getStrokeDefs: getStrokeDefs_1,
 		getMatrixTransform: getMatrixTransform_1
 	};

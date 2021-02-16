@@ -19,24 +19,80 @@ exports.getUseDefs = getUseDefs = (node) ->
     # if node.nodeName != 'use' then return false
     svg = node.closest "svg"
     defs = []
+    defs2 = []
 
-    linkedSelector = node.getAttribute "xlink:href"
-    if linkedSelector && not linkedSelector.match('data:') && not linkedSelector.match('/')
-        linked = svg.querySelectorAll linkedSelector
-        for link in linked
-            defs.push link.cloneNode()
+    nodesWithDefs = []
+    nodesWithDefs.push(node);
 
-    fillDefs = getFillDefs node
-    if fillDefs then defs = defs.concat fillDefs # comes cloned
-    strokeDefs = getStrokeDefs node
-    if strokeDefs then defs = defs.concat strokeDefs # comes cloned
+    # get nodes with urls (eligible to have <defs>)
+    eligibleNodes = node.querySelectorAll("[fill*=url], [filter*=url], [stroke*=url]")
+    # add nodes with defs and apply getDefsFromNode
+    # convert querySelectorAll to arrays, to be able to concat them
+    nodesWithDefs = nodesWithDefs.concat(Array.prototype.slice.call(eligibleNodes))
+
+    # if there's more than just on node (on cases where flatten; is used),
+    # get all eligible def nodes and get all their <defs>
+    for _node in nodesWithDefs
+
+      nodeDefs = getNodeDefs _node, svg
+      if nodeDefs then defs = defs.concat nodeDefs # comes cloned
+
+      # TODO: delete all this old stuff if noting breaks
+      # linkedSelector = _node.getAttribute "xlink:href"
+      # if linkedSelector && not linkedSelector.match('data:') && not linkedSelector.match('/')
+      #     linked = svg.querySelectorAll linkedSelector
+      #     for link in linked
+      #         defs.push link.cloneNode()
+      #
+      # fillDefs = getFillDefs _node, svg
+      # if fillDefs then defs = defs.concat fillDefs # comes cloned
+      # filterDefs = getFilterDefs _node, svg
+      # if filterDefs then defs = defs.concat filterDefs # comes cloned
+      # strokeDefs = getStrokeDefs _node, svg
+      # if strokeDefs then defs = defs.concat strokeDefs # comes cloned
 
     return defs
 
-exports.getFillDefs = getFillDefs = (node) ->
+
+exports.getNodeDefs = getNodeDefs = (node, svg) ->
+  defs = []
+  attrN = node.attributes.length
+  # loop through node's attributes. if it finds an attribute with an "url" content,
+  # try to get the selector to the def element and append it to defs
+  for i in [0...attrN]
+    attrName = node.attributes[i].nodeName
+    attrValue = node.attributes[i].nodeValue
+
+    # If the attribute contains "url", excluding inline data:image/pngs
+    if attrValue.match("url") and not attrValue.match('data:')
+       svg = svg or node.closest "svg"
+       defSelector = attrValue.replace(/(^url\()(.+)(\)$)/, '$2')
+       def = svg.querySelector defSelector
+       defs.push def.cloneNode(true)
+
+       # get uses if this fill contains them
+       if def.querySelector 'use'
+           uses = def.querySelectorAll 'use'
+           for use in uses
+               useDefs = getNodeDefs use, svg
+               if useDefs then defs = defs.concat useDefs # comes cloned
+
+    # if node's got an xlink:ref attribute, get the linked <def>
+    # this will only apply to recursions, where the node has an <use> and getNodeDefs is called again
+    if attrName.match("xlink:href")
+      svg = svg or node.closest "svg"
+      linkedSelector = attrValue
+      if linkedSelector && not linkedSelector.match('data:') && not linkedSelector.match('/')
+          linked = svg.querySelectorAll linkedSelector
+          for link in linked
+              defs.push link.cloneNode()
+   return defs;
+
+
+exports.getFillDefs = getFillDefs = (node, svg) ->
     defs = []
     if node.hasAttribute("fill") and node.getAttribute("fill").match("url")
-        svg = node.closest "svg"
+        svg = svg or node.closest "svg"
         fillUrl = node.getAttribute('fill').replace(/(^url\()(.+)(\)$)/, '$2')
         fill = svg.querySelector fillUrl
         defs.push fill.cloneNode(true)
@@ -49,10 +105,26 @@ exports.getFillDefs = getFillDefs = (node) ->
                 if useDefs then defs = defs.concat useDefs # comes cloned
     return defs;
 
-exports.getStrokeDefs = getStrokeDefs = (node) ->
+exports.getFilterDefs = getFilterDefs = (node, svg) ->
+    defs = []
+    if node.hasAttribute("filter") and node.getAttribute("filter").match("url")
+        svg = svg or node.closest "svg"
+        filterUrl = node.getAttribute('filter').replace(/(^url\()(.+)(\)$)/, '$2')
+        filter = svg.querySelector filterUrl
+        defs.push filter.cloneNode(true)
+
+        # get uses if this fill contains them
+        if filter.querySelector 'use'
+            uses = filter.querySelectorAll 'use'
+            for use in uses
+                useDefs = getUseDefs use
+                if useDefs then defs = defs.concat useDefs # comes cloned
+    return defs;
+
+exports.getStrokeDefs = getStrokeDefs = (node, svg) ->
     defs = []
     if node.hasAttribute("stroke") and node.getAttribute("stroke").match("url")
-        svg = node.closest "svg"
+        svg = svg or node.closest "svg"
         strokeUrl = node.getAttribute('stroke').replace(/(^url\()(.+)(\)$)/, '$2')
         stroke = svg.querySelector strokeUrl
         defs.push stroke.cloneNode(true)
